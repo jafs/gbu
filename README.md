@@ -1,13 +1,17 @@
 # GBU — El Bueno, el Feo y el Malo
 
+![Esquema humorístico](cover.png)
+
 Un patrón de orquestación multi-agente para desarrollar software con [Claude Code](https://claude.com/claude-code), inspirado en el western de Sergio Leone: un Sheriff coordina a cuatro especialistas que planifican, implementan, atacan y auditan el código, paso a paso, hasta completar la tarea.
 
 La idea central: **separar quien escribe el código de quien lo juzga**. Quien implementa trabaja con todo el contexto; quienes verifican trabajan aislados, sin haber visto la implementación, para juzgar solo lo que hay en disco y sin el sesgo de aprobar su propio trabajo.
 
+El origen y la motivación del patrón están contados en detalle en el artículo [«El Bueno, El Feo y El Malo: cómo poner a pelear a tres agentes para que escriban tu código por ti»](https://jafs.github.io/articles/posts/20260802.html).
+
 ## Los personajes
 
 | Personaje | Rol | Cómo se ejecuta |
-|---|---|---|
+| --- | --- | --- |
 | **El Sheriff** (`/gbu`) | Orquesta el patrón completo | Agente principal |
 | 🥸 **El Listo** (`/listo`) | Convierte la tarea en un plan incremental (`PLAN.md`) | Rol adoptado por el Sheriff, solo al inicio |
 | 🤠 **El Bueno** (`/bueno`) | Implementa el siguiente paso del plan y deja los tests en verde | Rol adoptado por el Sheriff, con todo el contexto |
@@ -21,16 +25,27 @@ FASE 0 (una sola vez)
   El Listo analiza el proyecto y los acuerdos del equipo
   y escribe PLAN.md: Tarea + Contexto + Pasos con checkboxes
 
+FASE 0b (una sola vez)
+  El Sheriff te pregunta cómo quieres cerrar cada paso: ¿commit y
+  push automáticos?, ¿con qué formato de mensaje?, y si no, ¿parar
+  o encadenar? Lo anota en PLAN.md y no vuelve a preguntar.
+
 Por cada paso pendiente del plan:
 
   FASE 1 — El Bueno implementa el paso y deja la suite de tests en verde
+     │
+     │  (atajo: si el diff solo trae comentarios, tests, formateo
+     │   automático o recursos estéticos, el Sheriff omite las
+     │   fases que no aportan)
      │
   FASE 2 — El Malo (subagente) ataca los cambios: nulls, límites,
      │     datos corruptos, concurrencia... Sus tests quedan en la
      │     suite como regresión.
      │       ├─ SOBREVIVIO_AL_MALO → continúa
      │       └─ Informe de fallos → El Bueno corrige todo de una
-     │          pasada y El Malo verifica (máx. 3 lanzamientos)
+     │          pasada y El Malo verifica (máx. 3 lanzamientos;
+     │          lo que quede tras el tope se te entrega como
+     │          observaciones y el paso sigue)
      │
   FASE 3 — El Feo (subagente) audita contra el plan y las convenciones
      │       ├─ APROBADO_POR_EL_FEO → continúa
@@ -38,22 +53,32 @@ Por cada paso pendiente del plan:
      │          verifica (máx. 3 lanzamientos). Si alguna desviación
      │          era funcional, El Malo da una última pasada acotada.
      │
-  Fin del paso — checkbox marcado en PLAN.md y cambios a staging
-                 (git add -A, sin commit: eso es decisión tuya)
+  Fin del paso — checkbox marcado en PLAN.md, cambios a staging
+                 y lo que diga el Modo de ejecución: commit y push,
+                 solo commit, o nada. Si pediste parar entre pasos,
+                 el Sheriff se detiene aquí y espera.
 
 Cuando no quedan pasos: COMPLETADO CON ÉXITO
 ```
 
-Si algún verificador rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaja con la realidad del código, el Sheriff se detiene y te pide ayuda en lugar de insistir a ciegas.
+Si El Feo rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaja con la realidad del código, el Sheriff se detiene y te pide ayuda en lugar de insistir a ciegas. El Malo no bloquea indefinidamente: si agota sus lanzamientos, lo pendiente se te entrega como observaciones, queda anotado en `TECHNICAL_DEBT.md` y el paso continúa.
 
 ## Decisiones de diseño
 
 - **`PLAN.md` es el único artefacto compartido.** El Listo es el único que lee la documentación del proyecto (`CLAUDE.md`, README, acuerdos de equipo): sintetiza todo lo relevante en la sección "Contexto" del plan, y el resto de agentes trabajan exclusivamente con el plan y el código en disco. Menos relecturas, menos tokens, arranques en frío baratos.
 - **Malo antes que Feo.** Primero se estabiliza el comportamiento, después se pule la forma. Así los arreglos de estilo del bucle con El Feo no obligan a re-atacar: los tests adversarios de El Malo ya montan guardia en la suite, que El Bueno debe mantener en verde tras cada ajuste.
-- **El staging de git marca la frontera entre pasos.** Lo aprobado se stagea; lo que está sin stagear es el paso en curso. Los verificadores solo miran lo sin stagear, así que nunca re-auditan trabajo ya validado. El patrón no hace commits: la historia del repositorio es tuya.
+- **El staging de git marca la frontera entre pasos.** Lo aprobado se stagea; lo que está sin stagear es el paso en curso. Los verificadores solo miran lo sin stagear, así que nunca re-auditan trabajo ya validado. En mitad de un paso nunca se commitea.
+- **La historia del repositorio es tuya, pero puedes delegarla.** Por defecto el patrón no hace commits. Si al arrancar le dices que sí, cada paso aprobado se cierra con un commit —y un push si lo pides— usando el formato de mensaje que elijas. La respuesta vive en `## Modo de ejecución` dentro de `PLAN.md`, así que sobrevive entre sesiones y solo se pregunta una vez.
 - **Informes agregados, verificaciones acotadas.** Malo y Feo completan su pasada entera y entregan todos los hallazgos de una vez (una corrección por iteración, no una por fallo). Cuando vuelven a entrar, solo verifican el informe anterior y lo tocado por la corrección.
 - **Salida disciplinada.** Los verificadores no narran su proceso ni enumeran lo que está bien: responden con el token exacto de aprobación o con el informe de lo que falla. Nada más.
-- **Modelos por rol.** El Feo corre en un modelo más rápido (`model: sonnet` en su frontmatter) porque su trabajo es contrastar contra una checklist. El Malo hereda el modelo de la sesión: diseñar buenos ataques es la parte difícil. Ajusta ambos a tu gusto.
+- **Modelos por rol.** El Feo corre en un modelo más rápido (`model: sonnet` en su frontmatter) porque su trabajo es contrastar contra una checklist. El Malo hereda el modelo de la sesión: diseñar buenos ataques es la parte difícil, y por eso el Sheriff te avisa antes de lanzarlo si la sesión corre con un modelo pequeño — un `SOBREVIVIO_AL_MALO` de un modelo flojo vale menos. Ajusta ambos a tu gusto.
+- **Presupuesto de esfuerzo.** El Sheriff mide cada paso en líneas de producción cambiadas y se lo dice a cada verificador en el encargo: un cambio de diez líneas recibe un barrido certero; uno que toca contratos o modelo de datos, barra libre. Un rol sin límites escala su esfuerzo a su propia ambición, no a la del cambio.
+- **Fallo u observación.** El Malo solo bloquea lo alcanzable con datos que el sistema produce de verdad; lo que exige forzar mocks, cambiar contratos fuera del paso o cuesta más que el riesgo real se entrega como observación al cerrar el paso. Tú decides si se corrige.
+- **La deuda técnica queda escrita.** Lo que El Malo encontró y no se corrigió —fallos degradados al agotar sus lanzamientos, observaciones que piden una decisión— no puede vivir solo en la conversación, que se pierde. El Sheriff lo anota en `TECHNICAL_DEBT.md`, junto al plan: cada entrada con su reproducción, su test omitido (skip) que la reproduce y qué haría falta para saldarla. Reactivar el test es retomar la deuda.
+- **El Feo lee, no ejecuta.** Sus herramientas son de solo lectura: el diff y los resultados de test, lint, build y tipos le llegan ya ejecutados en el encargo. Audita si el código cumple la especificación leyendo; que funciona ya lo demostraron los tests y El Malo.
+- **Atajos para pasos triviales.** Si el diff del paso solo contiene comentarios o documentación, solo tests, solo formateo automático o solo recursos puramente estéticos (CSS visual, imágenes), el Sheriff omite a los verificadores que no aportan en ese caso: El Malo no ataca comentarios y El Feo no audita la salida de un formateador. Los tests nuevos sí pasan siempre por El Feo (un assert aflojado es una desviación), y ante la duda se ejecuta el flujo completo.
+- **El Malo escribe tests, no producción.** El Sheriff guarda una instantánea del diff de producción antes de lanzarlo y la compara al terminar: cualquier cambio de producción aparecido durante el ataque se revisa antes de seguir, porque El Feo audita justo después y no distingue la mano de El Malo de la de El Bueno.
+- **Los topes se gastan en veredictos.** Si un verificador responde algo que no es ni su token de aprobación ni su informe (por ejemplo, le faltaba un dato del encargo), se completa el encargo y se relanza sin consumir el tope de tres lanzamientos: los topes miden rechazos del código, no defectos del encargo.
 
 ## Instalación
 
@@ -78,12 +103,15 @@ El modo normal es lanzar el patrón completo:
 
 - Si no existe `PLAN.md`, El Listo lo genera primero a partir de tu descripción (o de la ruta a un fichero/issue que le pases).
 - Si ya existe, el Sheriff retoma directamente el primer checkbox sin marcar — puedes parar y relanzar `/gbu` cuando quieras: el plan en disco es el estado.
+- Si el plan existe pero no tiene la estructura que el patrón espera (Tarea, Contexto, Pasos con checkboxes) — por ejemplo porque lo escribiste a mano —, El Listo lo normaliza primero y te pide confirmación antes de arrancar.
+- Además de la tarea, `/gbu` acepta como argumento una ruta de plan alternativa, un paso concreto por el que empezar, o «solo un paso» para ejecutar un único paso y parar.
 
 Consejos:
 
 - **Revisa `PLAN.md` antes de dejar correr el ciclo.** Es el contrato que seguirán todos los agentes; dos minutos ahí valen más que cualquier corrección posterior.
 - Si tienes acuerdos de equipo (un directorio de *agreements*, guías de estilo), díselo en el prompt inicial para que El Listo los sintetice en el plan.
-- Los cambios aprobados quedan en staging: revisa y haz commit con la granularidad que prefieras.
+- Si dejas el commit en tus manos, los cambios aprobados quedan en staging: revisa y commitea con la granularidad que prefieras.
+- Para cambiar de opinión a mitad de plan, edita la sección `## Modo de ejecución` de `PLAN.md`: el Sheriff la relee al cerrar cada paso.
 
 También puedes invocar piezas sueltas:
 
@@ -93,6 +121,16 @@ También puedes invocar piezas sueltas:
 /malo              # lanzar solo el ataque sobre los cambios actuales
 /feo               # lanzar solo la auditoría sobre los cambios actuales
 ```
+
+## Ejemplos
+
+El directorio [`example/`](example/) contiene ejemplos reales generados con `/gbu`. Cada subdirectorio incluye el `PLAN.md` que escribió El Listo (con sus checkboxes ya marcados), el código y los tests que salieron del ciclo completo —incluidos los casos adversarios que El Malo dejó como regresión en la suite— y un `README.md` con la traza de la ejecución: qué planificó El Listo, qué implementó El Bueno y qué encontró u observó cada verificador en cada lanzamiento.
+
+| Ejemplo | Qué es | Qué ilustra |
+| --- | --- | --- |
+| [`example/roman-numerals/`](example/roman-numerals/) | Conversor de números romanos en Python (`unittest`) | El flujo completo en dos pasos; El Malo verifica el rango entero con un decodificador independiente y deja casos Unicode como regresión |
+| [`example/slugify/`](example/slugify/) | Slugify en JavaScript (`node:test`) | Las observaciones de El Malo sobre un paso guían el diseño del siguiente (el orden de la normalización Unicode) |
+| [`example/csv-line/`](example/csv-line/) | Parser CSV en JavaScript (`node:test`), con El Bueno en un modelo pequeño | El bucle de corrección completo: El Malo rompe la implementación, rompe también el primer parche, y solo aprueba la corrección estructural; lo no corregido queda en `TECHNICAL_DEBT.md` |
 
 ## Adáptalo a tu LLM favorito
 

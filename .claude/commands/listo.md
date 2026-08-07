@@ -28,7 +28,7 @@ Antes de planificar, analiza el estado actual del proyecto:
 1. Las convenciones documentadas: `CLAUDE.md`, README y cualquier documentación técnica existente.
 2. Los acuerdos adicionales que indique el usuario (por ejemplo, un directorio de agreements o guías de equipo).
 3. La arquitectura y organización del código actual.
-4. El framework de pruebas del proyecto y el comando exacto para ejecutarlo.
+4. El framework de pruebas del proyecto y los comandos exactos para ejecutar la suite, el lint, la build y el chequeo de tipos.
 
 Estas convenciones son obligatorias para el plan.
 
@@ -56,10 +56,20 @@ Esta sección es la única documentación que verá el resto de agentes: debe se
 
 - convenciones de estilo, nomenclatura y arquitectura
 - acuerdos de equipo aplicables a la tarea
-- el framework de pruebas y el comando exacto para ejecutar la suite
+- el framework de pruebas y los comandos exactos para ejecutar la suite, el lint, la build y el chequeo de tipos
+- el patrón de rutas y nombres de los ficheros de test (dónde viven, cómo se llaman): el orquestador lo necesita para separar producción de tests al medir
 - los comandos o skills propios de revisión de código del proyecto, si existen
 
 Sé conciso: todos los agentes releen esta sección en cada invocación. Incluye solo lo que condiciona esta tarea y procura que quepa en una página.
+
+## Modo de ejecución
+
+No la escribes tú: es del Sheriff, que la rellena preguntando al usuario en cuanto el plan existe. Déjala fuera del plan salvo que el usuario ya te haya dicho explícitamente cómo quiere cerrar cada paso (commit, push, parar entre pasos); en ese caso anótalo con este formato:
+
+- **Al cerrar cada paso**: commit y push | commit sin push | nada, dejar en staging
+- **Formato de commit**: el formato literal acordado, con un ejemplo | no aplica
+- **Entre pasos**: parar y esperar revisión | encadenar el siguiente
+- **Notas del usuario**: su respuesta en texto libre, tal cual, si la hubo
 
 ## Pasos
 
