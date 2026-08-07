@@ -8,6 +8,8 @@ La idea central: **separar quien escribe el código de quien lo juzga**. Quien i
 
 El origen y la motivación del patrón están contados en detalle en el artículo [«El Bueno, El Feo y El Malo: cómo poner a pelear a tres agentes para que escriban tu código por ti»](https://jafs.github.io/articles/posts/20260802.html).
 
+Este repositorio es **una implementación de ejemplo** del patrón, hecha para Claude Code. El patrón en sí no es de nadie: cualquiera puede implementarlo libremente, tal cual o a su manera, en la herramienta que prefiera — la sección [«Adáptalo a tu LLM favorito»](#adáptalo-a-tu-llm-favorito) da las claves para portarlo.
+
 ## Los personajes
 
 | Personaje | Rol | Cómo se ejecuta |
@@ -124,13 +126,23 @@ También puedes invocar piezas sueltas:
 
 ## Ejemplos
 
-El directorio [`example/`](example/) contiene ejemplos reales generados con `/gbu`. Cada subdirectorio incluye el `PLAN.md` que escribió El Listo (con sus checkboxes ya marcados), el código y los tests que salieron del ciclo completo —incluidos los casos adversarios que El Malo dejó como regresión en la suite— y un `README.md` con la traza de la ejecución: qué planificó El Listo, qué implementó El Bueno y qué encontró u observó cada verificador en cada lanzamiento.
+El directorio [`examples/`](examples/) contiene ejemplos reales generados con `/gbu`. Cada subdirectorio incluye el `PLAN.md` que escribió El Listo (con sus checkboxes ya marcados), el código y los tests que salieron del ciclo completo —incluidos los casos adversarios que El Malo dejó como regresión en la suite— y un `README.md` con la traza de la ejecución: qué planificó El Listo, qué implementó El Bueno y qué encontró u observó cada verificador en cada lanzamiento.
 
 | Ejemplo | Qué es | Qué ilustra |
 | --- | --- | --- |
-| [`example/roman-numerals/`](example/roman-numerals/) | Conversor de números romanos en Python (`unittest`) | El flujo completo en dos pasos; El Malo verifica el rango entero con un decodificador independiente y deja casos Unicode como regresión |
-| [`example/slugify/`](example/slugify/) | Slugify en JavaScript (`node:test`) | Las observaciones de El Malo sobre un paso guían el diseño del siguiente (el orden de la normalización Unicode) |
-| [`example/csv-line/`](example/csv-line/) | Parser CSV en JavaScript (`node:test`), con El Bueno en un modelo pequeño | El bucle de corrección completo: El Malo rompe la implementación, rompe también el primer parche, y solo aprueba la corrección estructural; lo no corregido queda en `TECHNICAL_DEBT.md` |
+| [`examples/roman-numerals/`](examples/roman-numerals/) | Conversor de números romanos en Python (`unittest`) | El flujo completo en dos pasos; El Malo verifica el rango entero con un decodificador independiente y deja casos Unicode como regresión |
+| [`examples/slugify/`](examples/slugify/) | Slugify en JavaScript (`node:test`) | Las observaciones de El Malo sobre un paso guían el diseño del siguiente (el orden de la normalización Unicode) |
+| [`examples/csv-line/`](examples/csv-line/) | Parser CSV en JavaScript (`node:test`), con El Bueno en un modelo pequeño | El bucle de corrección completo: El Malo rompe la implementación, rompe también el primer parche, y solo aprueba la corrección estructural; lo no corregido queda en `TECHNICAL_DEBT.md` |
+
+### Conclusiones tras las ejecuciones
+
+Lo que dejaron estas tres ejecuciones, más allá del código:
+
+- **El plan es una red de seguridad.** Para provocar el bucle de corrección en `csv-line` hubo que degradar a El Bueno a un modelo pequeño *y aun así* sobrevivió a dos de los tres pasos: con un plan detallado de El Listo delante (contrato exacto, supuestos documentados, casos límite enumerados), hasta un implementador modesto acierta. El fallo apareció justo donde el diseño invitaba a duplicar estado — un problema de modelo, no de descuido.
+- **El Malo aporta aunque no rompa.** En las ejecuciones sin fallos su huella quedó igualmente: casos adversarios montando guardia en la suite (`"XIV\n"`, entrada NFD, coerciones de tipo), observaciones que guiaron el diseño del paso siguiente (el orden de la normalización Unicode en `slugify` salió de su ataque al paso anterior) y deuda anotada para decidir después.
+- **Sus diagnósticos de causa raíz valen tanto como sus fallos.** En `csv-line` advirtió dos veces que «el problema es del modelo, no del parche», y acertó las dos: el primer arreglo cambió un fallo por su espejo y solo la corrección estructural cerró el ciclo. Cuando El Malo señala la causa raíz, corregir el síntoma sale caro.
+- **Malo antes que Feo funciona.** El Feo aprobó a la primera en todos los pasos: llegó siempre con el comportamiento ya estabilizado y los tests adversarios en verde, y pudo limitarse a contrastar contra la especificación. En proyectos con convenciones propias (arquitectura, acuerdos de equipo) su listón tiene más donde morder que en ejemplos autocontenidos como estos.
+- **La asimetría de modelos es una palanca.** Bueno pequeño + Malo grande maximiza la caza (y abarata la implementación); Bueno grande + Malo grande maximiza que el paso sobreviva a la primera. Elegir modelo por rol es parte del ajuste del patrón, no un detalle de infraestructura.
 
 ## Adáptalo a tu LLM favorito
 
