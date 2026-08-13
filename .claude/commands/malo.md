@@ -26,9 +26,12 @@ Si es una **verificación** (relanzamiento tras un informe de fallos, o pasada a
 
 - el informe que motiva la verificación, íntegro (el suyo anterior, o las desviaciones funcionales de El Feo)
 - la lista de archivos tocados por la corrección
+- **la ruta de un fichero con el diff de la corrección**: solo lo que ha cambiado desde que se emitió ese informe, no el paso entero
 - el tamaño re-medido **sobre la corrección**, no sobre el paso entero
 
 Sin el informe no puede acotar la verificación y repetirá la batería completa.
+
+Ese diff acota, pero no sustituye al árbol de trabajo: El Malo tiene herramientas completas y debe seguir pudiendo leer el resto del paso para juzgar si la corrección encaja con él.
 
 Si te falta alguno de los campos, **calcúlalo antes de lanzar**. No lo dejes a que lo deduzca él: un encargo incompleto le hace medir mal el esfuerzo y atacar de menos.
 

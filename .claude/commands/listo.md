@@ -84,6 +84,40 @@ Cada paso debe:
 - dejar el proyecto en un estado funcional
 - indicar qué archivos toca y qué pruebas lo verifican
 
+### Subpasos
+
+**El checkbox es la unidad de trabajo del patrón**: cada uno recibe su propio ciclo completo (implementación, ataque de El Malo, auditoría de El Feo) y su propio commit. Un checkbox que abarca demasiado hace tres cosas malas a la vez: produce un commit que a un humano le cuesta seguir, obliga a El Malo y a El Feo a cubrir una superficie enorme de una sentada —donde se les escapan casos que en un cambio pequeño verían— y, cuando algo falla, mezcla la corrección con trabajo ya aprobado.
+
+Por eso, cuando un paso abarque más de una unidad de comportamiento o cruce varias capas, **pártelo en subpasos**. El paso sigue siendo la unidad semántica (el «qué»); el subpaso es la unidad de ciclo y de commit (el «cómo se entrega»).
+
+Parte en dos niveles:
+
+1. **Por unidad de comportamiento independiente.** En un proyecto DDD, un caso de uso; en general, cada trozo de lógica que se pueda describir, implementar y probar por separado. Tres casos de uso → tres bloques.
+2. **Dentro de cada bloque, por capas, en este orden**:
+   - **(a) lógica pura** —dominio, entidades, value objects, funciones sin dependencias externas— con sus tests;
+   - **(b) infraestructura** —adaptadores, persistencia, clientes, rutas— con sus tests;
+   - **(c) el enlace**: la unidad de comportamiento que consume (a) y (b), su cableado en la composición y los tests de extremo a extremo.
+
+Ese orden funciona porque **una pieza sin enlazar no rompe nada**: (a) y (b) dejan la suite verde por sí solas, así que cada subpaso es commiteable de forma independiente. Tres casos de uso darían así unos nueve subpasos.
+
+Ajusta la partición a la realidad, no la fuerces:
+
+- **Omite la capa que no tenga trabajo.** Si un caso de uso no añade dominio, no inventes un subpaso (a) vacío.
+- **Funde las capas triviales.** Si (a) es un único método de una línea, va con (c); no manufactures commits vacíos.
+- **No partas lo que no se sostiene solo.** Si un subpaso dejara la suite en rojo o el proyecto sin compilar, va unido al siguiente: la regla de «suite verde al cerrar» manda sobre la de granularidad.
+- **No partas un paso que ya es pequeño.** Un paso de dos o tres ficheros no necesita subpasos.
+
+Formato: el paso conserva su checkbox y los subpasos van **indentados** debajo. El checkbox del paso es un *roll-up* —se marca cuando se marca su último subpaso— y sirve para ver de un vistazo qué partes del plan están cerradas sin recorrer todos los subpasos:
+
+```markdown
+- [ ] **Paso 2 — Revocar sesiones al cambiar la contraseña.** Una frase de contexto: qué comportamiento cubre el paso entero.
+  - [ ] **Paso 2.1 — Dominio: `deleteByAccountId` en el puerto de sesiones.** Qué toca, qué lo verifica.
+  - [ ] **Paso 2.2 — Infraestructura: implementarlo en el adaptador SQLite.** Qué toca, qué lo verifica.
+  - [ ] **Paso 2.3 — Enlace: el caso de uso revoca, cableado y E2E.** Qué toca, qué lo verifica.
+```
+
+La indentación es lo que distingue un subpaso de un paso: mantenla. Un paso sin subpasos se escribe como siempre, sin nada indentado debajo. Cada subpaso indica, como un paso, qué archivos toca y qué pruebas lo verifican, y debe dejar la suite en verde por sí solo.
+
 ---
 
 # Reglas

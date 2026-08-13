@@ -35,6 +35,14 @@ El plan contiene:
 - **Modo de ejecución**: qué hacer al cerrar cada paso —commit, push, parar o encadenar—, decidido por el usuario en la FASE 0b.
 - **Pasos**: la lista de pasos de implementación con checkboxes. El siguiente paso pendiente es el primer checkbox sin marcar.
 
+**La unidad de trabajo es el checkbox más profundo.** El Listo parte los pasos grandes en subpasos indentados debajo de su paso (`Paso 2.1`, `Paso 2.2`…), y el paso conserva su propio checkbox como *roll-up*. Por tanto:
+
+- **la siguiente unidad de trabajo es el primer checkbox sin marcar que no tenga subpasos indentados debajo**: el checkbox de un paso con subpasos nunca se implementa, se marca solo cuando cae el último de ellos;
+- cada unidad de trabajo recibe su ciclo completo —El Bueno, El Malo, El Feo— y su propio commit;
+- al cerrar un subpaso, si era el último sin marcar de su paso, marca también el checkbox del paso en el mismo commit.
+
+Donde este fichero dice «paso», léase «la unidad de trabajo»: el flujo es idéntico para un paso suelto y para un subpaso.
+
 El área de staging de git marca la frontera entre pasos:
 
 - los cambios de pasos ya aprobados están en staging
@@ -56,6 +64,8 @@ Si el plan existe pero **no cumple el contrato** que el resto del patrón da por
 - una sección `## Tarea`
 - una sección `## Contexto`
 - una sección `## Pasos` con checkboxes `- [ ]` / `- [x]`
+
+Que los pasos estén o no partidos en subpasos **no** forma parte de este contrato: un plan con pasos grandes es válido y se ejecuta tal cual. Si ves que los pasos pendientes son mucho más anchos de lo que conviene, dilo al usuario y ofrécele una pasada de El Listo en modo revisión para partirlos, pero no la lances por tu cuenta ni bloquees el flujo por ello.
 
 Si falta cualquiera de las tres, el plan no sirve tal cual: sin `## Pasos` no sabes cuál es el siguiente paso ni puedes marcarlo al cerrar, y **sin `## Contexto` El Malo y El Feo se quedan sin convenciones ni comandos de test**, porque el plan es toda su documentación.
 
@@ -156,8 +166,29 @@ El Malo hereda el modelo de la sesión. Es lo que se quiere —si trabajas con u
 
 La patrulla se repite en **cada** lanzamiento, también en las verificaciones: si El Bueno corrigió algo, regenera la instantánea justo antes de relanzar, o la corrección legítima se le atribuiría a El Malo.
 
+## El diff de la corrección
+
+Las verificaciones —de El Malo y de El Feo— se acotan con un diff que contiene **solo la corrección**, no el paso entero. Producirlo es cosa tuya; `malo.md` y `feo.md` solo declaran que lo esperan como campo del encargo.
+
+Se obtiene congelando el estado previo en el área de staging **antes** de que El Bueno toque nada, de modo que al terminar la corrección lo no stageado sea exactamente ella:
+
+```bash
+# nada más recibir el informe de fallos o el Informe de Desviaciones
+git add -A
+# cuando El Bueno haya terminado de corregir
+git diff > <ruta-temporal>/gbu-fix.diff
+git reset
+```
+
+Tres cuidados:
+
+- **`git reset` en cuanto tengas el fichero.** El área de staging es la frontera entre pasos; dejarla contaminada rompe esa señal.
+- La `<ruta-temporal>` va **fuera del repo**, o el fichero aparecería dentro del propio diff.
+- Si el modo de ejecución deja los cambios en staging entre pasos, `git add -A` los mezclaría con los del paso en curso. En ese caso parte de `git diff HEAD` para el diff completo y guarda el estado previo en un fichero aparte, comparándolo como en la patrulla de instantáneas.
+
 Si reporta fallos:
 
+- **congela el estado previo** (ver «El diff de la corrección», más abajo)
 - devuelve el control a El Bueno
 - corrige todos los fallos del informe en una sola pasada, dejando la suite de tests en verde
 - vuelve a lanzar el subagente `malo` en una invocación nueva, indicándole que es una **verificación**, con los campos adicionales que `malo.md` define para ese caso: comprueba que ningún fallo se reproduce y ataca solo lo que la corrección ha cambiado, sin repetir la batería completa. **Re-mide el tamaño sobre la corrección**: el presupuesto de la verificación es el del arreglo, no el del paso entero. El comando del Coste aquí no sirve —mide el paso completo—: el tamaño del arreglo lo sabes de primera mano, porque la corrección la acabas de hacer tú como El Bueno
@@ -195,6 +226,7 @@ continúa a Finalización.
 
 Si devuelve un Informe de Desviaciones:
 
+- **congela el estado previo** (ver «El diff de la corrección», en la FASE 2)
 - devuelve el control a El Bueno
 - corrige únicamente esas desviaciones, dejando la suite de tests en verde
 - **regenera el fichero del diff y los números** de `test`, `lint`, `build` y chequeo de tipos tras la corrección: El Feo no distingue un diff viejo de uno nuevo, y auditar el diff previo a la corrección le hace re-reportar lo ya corregido y quemar lanzamientos
@@ -235,7 +267,7 @@ y después
 
 En ese momento:
 
-1. Marca el checkbox del paso completado en el plan.
+1. Marca el checkbox de la unidad de trabajo completada en el plan y, si era el último subpaso sin marcar de su paso, marca también el del paso.
 2. Pasa todos los cambios al área de staging (`git add -A`), incluida la marca del checkbox.
 3. Aplica el `## Modo de ejecución` del plan:
    - **si pide commit**: commitea lo stageado con el formato anotado allí. El mensaje describe el paso cerrado, no el patrón.

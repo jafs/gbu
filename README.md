@@ -22,17 +22,34 @@ Este repositorio es **una implementación de ejemplo** del patrón, hecha para C
 
 ## El flujo
 
+```mermaid
+flowchart TD
+    L["🥸 El Listo<br/>escribe PLAN.md:<br/>Tarea + Contexto + Pasos"] --> M["FASE 0b<br/>¿cómo se cierra cada paso?<br/>(commit, push, parar o encadenar)"]
+    M --> Q{"¿Queda alguna<br/>unidad de trabajo<br/>sin marcar?"}
+    Q -- "No" --> FIN(["✅ COMPLETADO CON ÉXITO"])
+    Q -- "Sí" --> B["🤠 El Bueno<br/>implementa y deja<br/>la suite en verde"]
+    B --> A["🌵 El Malo — subagente aislado<br/>ataca los cambios"]
+    A -- "Informe de fallos<br/>(máx. 3 lanzamientos)" --> B
+    A -- "SOBREVIVIO_AL_MALO" --> F["👺 El Feo — subagente aislado<br/>audita plan y convenciones"]
+    F -- "Informe de Desviaciones<br/>(máx. 3 lanzamientos)" --> B
+    F -- "APROBADO_POR_EL_FEO" --> C["Cierre del paso<br/>checkbox marcado, git add -A<br/>y Modo de ejecución"]
+    C --> Q
+```
+
+Las flechas de vuelta a El Bueno son los bucles de corrección: cada relanzamiento del verificador es una **verificación acotada** —solo el informe anterior y el diff del arreglo—, no una pasada nueva. El detalle, fase a fase:
+
 ```text
 FASE 0 (una sola vez)
   El Listo analiza el proyecto y los acuerdos del equipo
   y escribe PLAN.md: Tarea + Contexto + Pasos con checkboxes
+  (los pasos grandes van partidos en subpasos indentados)
 
 FASE 0b (una sola vez)
   El Sheriff te pregunta cómo quieres cerrar cada paso: ¿commit y
   push automáticos?, ¿con qué formato de mensaje?, y si no, ¿parar
   o encadenar? Lo anota en PLAN.md y no vuelve a preguntar.
 
-Por cada paso pendiente del plan:
+Por cada unidad de trabajo pendiente (paso o subpaso):
 
   FASE 1 — El Bueno implementa el paso y deja la suite de tests en verde
      │
@@ -55,7 +72,8 @@ Por cada paso pendiente del plan:
      │          verifica (máx. 3 lanzamientos). Si alguna desviación
      │          era funcional, El Malo da una última pasada acotada.
      │
-  Fin del paso — checkbox marcado en PLAN.md, cambios a staging
+  Fin del paso — checkbox marcado en PLAN.md (y el del paso padre
+                 si era su último subpaso), cambios a staging
                  y lo que diga el Modo de ejecución: commit y push,
                  solo commit, o nada. Si pediste parar entre pasos,
                  el Sheriff se detiene aquí y espera.
@@ -71,7 +89,8 @@ Si El Feo rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaj
 - **Malo antes que Feo.** Primero se estabiliza el comportamiento, después se pule la forma. Así los arreglos de estilo del bucle con El Feo no obligan a re-atacar: los tests adversarios de El Malo ya montan guardia en la suite, que El Bueno debe mantener en verde tras cada ajuste.
 - **El staging de git marca la frontera entre pasos.** Lo aprobado se stagea; lo que está sin stagear es el paso en curso. Los verificadores solo miran lo sin stagear, así que nunca re-auditan trabajo ya validado. En mitad de un paso nunca se commitea.
 - **La historia del repositorio es tuya, pero puedes delegarla.** Por defecto el patrón no hace commits. Si al arrancar le dices que sí, cada paso aprobado se cierra con un commit —y un push si lo pides— usando el formato de mensaje que elijas. La respuesta vive en `## Modo de ejecución` dentro de `PLAN.md`, así que sobrevive entre sesiones y solo se pregunta una vez.
-- **Informes agregados, verificaciones acotadas.** Malo y Feo completan su pasada entera y entregan todos los hallazgos de una vez (una corrección por iteración, no una por fallo). Cuando vuelven a entrar, solo verifican el informe anterior y lo tocado por la corrección.
+- **El checkbox es la unidad de trabajo.** Cada checkbox recibe su propio ciclo completo —Bueno, Malo, Feo— y su propio commit. Por eso El Listo parte los pasos que abarcan varias unidades de comportamiento o varias capas en subpasos indentados (lógica pura → infraestructura → enlace), cada uno commiteable por sí solo y con la suite en verde; el checkbox del paso queda como *roll-up*. Un checkbox demasiado ancho produce commits difíciles de seguir, obliga a los verificadores a cubrir demasiada superficie de una sentada y mezcla las correcciones con trabajo ya aprobado. Los pasos que ya son pequeños no se parten.
+- **Informes agregados, verificaciones acotadas.** Malo y Feo completan su pasada entera y entregan todos los hallazgos de una vez (una corrección por iteración, no una por fallo). Cuando vuelven a entrar, solo verifican el informe anterior y lo tocado por la corrección: el Sheriff les pasa un diff que contiene **solo el arreglo** —congelando el estado previo en staging antes de corregir— y re-mide el presupuesto sobre él, no sobre el paso entero.
 - **Salida disciplinada.** Los verificadores no narran su proceso ni enumeran lo que está bien: responden con el token exacto de aprobación o con el informe de lo que falla. Nada más.
 - **Modelos por rol.** El Feo corre en un modelo más rápido (`model: sonnet` en su frontmatter) porque su trabajo es contrastar contra una checklist. El Malo hereda el modelo de la sesión: diseñar buenos ataques es la parte difícil, y por eso el Sheriff te avisa antes de lanzarlo si la sesión corre con un modelo pequeño — un `SOBREVIVIO_AL_MALO` de un modelo flojo vale menos. Ajusta ambos a tu gusto.
 - **Presupuesto de esfuerzo.** El Sheriff mide cada paso en líneas de producción cambiadas y se lo dice a cada verificador en el encargo: un cambio de diez líneas recibe un barrido certero; uno que toca contratos o modelo de datos, barra libre. Un rol sin límites escala su esfuerzo a su propia ambición, no a la del cambio.
@@ -104,7 +123,7 @@ El modo normal es lanzar el patrón completo:
 ```
 
 - Si no existe `PLAN.md`, El Listo lo genera primero a partir de tu descripción (o de la ruta a un fichero/issue que le pases).
-- Si ya existe, el Sheriff retoma directamente el primer checkbox sin marcar — puedes parar y relanzar `/gbu` cuando quieras: el plan en disco es el estado.
+- Si ya existe, el Sheriff retoma directamente el primer checkbox sin marcar que no tenga subpasos debajo — puedes parar y relanzar `/gbu` cuando quieras: el plan en disco es el estado.
 - Si el plan existe pero no tiene la estructura que el patrón espera (Tarea, Contexto, Pasos con checkboxes) — por ejemplo porque lo escribiste a mano —, El Listo lo normaliza primero y te pide confirmación antes de arrancar.
 - Además de la tarea, `/gbu` acepta como argumento una ruta de plan alternativa, un paso concreto por el que empezar, o «solo un paso» para ejecutar un único paso y parar.
 

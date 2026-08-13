@@ -29,8 +29,11 @@ Si es una **verificación** (relanzamiento tras un Informe de Desviaciones), añ
 
 - el Informe de Desviaciones anterior íntegro
 - la lista de archivos tocados por la corrección
+- **la ruta de un segundo fichero con el diff de la corrección**: solo lo que ha cambiado desde que se emitió ese informe
 
 Sin ellos no puede acotar la verificación y repetirá la auditoría completa.
+
+En la verificación le llegan por tanto **dos** diffs, y hay que decirle cuál es cuál: **audita el de la corrección**, y el del paso completo lo tiene solo como contexto, para detectar que la corrección no encaje con el resto del paso (un puerto que cambia y un consumidor que se queda atrás). Sin el segundo, una corrección coherente consigo misma pero incoherente con lo ya aprobado pasaría desapercibida.
 
 **El Feo no ejecuta nada, y no tiene con qué hacerlo**: sus herramientas son de lectura. Si no le das el diff en un fichero y los números ya hechos, no puede auditar. Genera el diff antes de lanzarlo:
 
