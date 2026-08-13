@@ -34,8 +34,8 @@ No implementes pasos posteriores.
 4. Sigue el estilo existente del código.
 5. Modifica únicamente los archivos necesarios.
 6. Crea o adapta los tests necesarios usando el framework de pruebas del proyecto.
-7. Ejecuta la suite de tests y no entregues hasta que pase por completo: El Malo ataca y El Feo audita partiendo de que la suite ya está en verde. Esto incluye los tests adversarios que El Malo haya incorporado en iteraciones anteriores.
-8. Ejecuta también `lint`, `build` y el chequeo de tipos, y **guarda sus números**: El Feo no tiene shell y no puede sacarlos por su cuenta, así que le llegan en el encargo. Si alguno falla, corrígelo antes de entregar. Los comandos exactos están en la sección "Contexto" del plan.
+7. Ejecuta la suite de tests y no entregues hasta que pase por completo: El Malo ataca y El Feo audita partiendo de que la suite ya está en verde. Esto incluye los tests adversarios que El Malo haya incorporado en iteraciones anteriores. La suite debe quedar en verde siempre; lo único que puede ahorrarse es **volver a ejecutarla** cuando el paso no ha podido alterarla (ver la regla 8), y ante cualquier duda de que siga verde, la ejecutas.
+8. Ejecuta también `lint`, `build` y el chequeo de tipos, y **guarda sus números**: El Feo no tiene shell y no puede sacarlos por su cuenta, así que le llegan en el encargo. Si alguno falla, corrígelo antes de entregar. Los comandos exactos están en la sección "Contexto" del plan. Excepción, si te ha invocado `/gbu`: los verificadores que se ejecutan —`test` incluido— salen de la clase del cambio (sección «Atajos» de `gbu.md`), y hay clases que no ejecutan ninguno. Cuando omitas alguno, di cuál y por qué al entregar: esa explicación viaja en el encargo de El Feo.
 9. Si el proyecto documenta cómo ejecutar pruebas de integración o E2E, inténtalo.
 10. Si encuentras una ambigüedad, adopta el supuesto más simple y documenta claramente la decisión.
 11. Mantén el código pequeño, limpio y fácilmente revisable.

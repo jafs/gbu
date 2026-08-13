@@ -25,6 +25,8 @@ En el encargo indícale únicamente estos campos:
 
 El diff y los números deben ser los **del momento del lanzamiento**: si ha habido una corrección desde que se generaron, regenéralos. Un diff obsoleto le hace re-reportar lo ya corregido.
 
+Hay una excepción, y es legítima: cuando el cambio no ha podido alterar lo que un verificador mide —un paso de solo documentación, por ejemplo—, ese verificador no se ejecuta. Entonces le pasas los números de la última ejecución válida diciéndole **de cuándo son y por qué el paso no los ha vuelto a generar**. Con esa explicación el encargo está completo y El Feo audita con ellos; sin ella, unos números que no cuadran con el diff parecen un descuido y los reclamará.
+
 Si es una **verificación** (relanzamiento tras un Informe de Desviaciones), añade además:
 
 - el Informe de Desviaciones anterior íntegro

@@ -133,7 +133,33 @@ Implementa exclusivamente el siguiente paso pendiente del plan.
 
 Si el siguiente paso pendiente ya no encaja con el estado actual del código, no lo implementes: detente y consúltalo con el usuario.
 
-**Al cerrar la fase, ejecuta `test`, `lint`, `build` y el chequeo de tipos** (los comandos exactos están en el Contexto del plan) y guarda sus números. El Feo no puede ejecutarlos —no tiene shell— y los necesita en su encargo. Si alguno falla, corrígelo antes de seguir: los verificadores parten de que todo está en verde.
+**Al cerrar la fase, clasifica primero el cambio** con la sección «Atajos», que va justo debajo, **y ejecuta solo los verificadores que esa clase pida** (los comandos exactos están en el Contexto del plan). En el caso normal —el paso toca código de producción— son los cuatro: `test`, `lint`, `build` y el chequeo de tipos. Guarda sus números: El Feo no puede ejecutarlos —no tiene shell— y los necesita en su encargo. Si alguno falla, corrígelo antes de seguir: los verificadores parten de que todo está en verde.
+
+La clasificación va antes que la verificación y no al revés: un paso de solo documentación no toca nada que `test`, `lint` o `build` puedan medir, y ejecutarlos igualmente cuesta minutos para producir números que nadie va a usar.
+
+Si el paso no ejecuta alguno de los verificadores, **dile a El Feo por qué**: pásale los números de la última ejecución válida, con la clase que aplicaste y de cuándo son. La razón es siempre la misma —el cambio no ha podido alterar lo que ese verificador mide—, pero el alcance depende de la clase: un paso documental no ejecuta ninguno, uno de solo tests no ejecuta `build`, uno de formateo solo ejecuta `lint`.
+
+---
+
+# Atajos
+
+Clasifica el diff sin stagear del paso: la clase decide qué verificadores se ejecutan al cerrar la FASE 1 y qué fases de revisión entran. Ejecuta primero `git add -N .`: sin él los ficheros nuevos no aparecen en `git diff` y un paso que crea ficheros parecería vacío. El `-N` solo registra el nombre; no stagea contenido y no rompe la frontera entre pasos.
+
+| Clase de cambio | Verificadores | El Malo | El Feo |
+|---|---|---|---|
+| Producción (el caso normal) | los cuatro | sí | sí |
+| **Solo tests** (sin código de producción) | `test`, más `lint` y tipos si el proyecto los aplica también a los tests | no | **sí**: audita que los tests respeten la especificación |
+| **Solo comentarios o documentación** (sin efecto en la ejecución) | ninguno | no | solo si documentan comportamiento o contratos públicos (docstrings de una API, specs, documentación de módulo) |
+| **Solo formateo automático** (salida de un formateador o linter, sin cambios semánticos) | `lint` | no | no |
+| **Solo recursos puramente estéticos** (CSS visual, imágenes) | `build` si el recurso entra en él | no | sí |
+
+Los ficheros de registro del propio patrón —`PLAN.md`, `TECHNICAL_DEBT.md`— cuentan como documentación: un paso cuyo trabajo es escribirlos no ejecuta verificadores. Cuando el cambio los toque **junto a** código, manda el código: la clase es la del cambio más exigente del diff.
+
+El atajo debe ser evidente mirando el diff. Ante cualquier duda sobre la clasificación, ejecuta el flujo completo. Los renombrados y los cambios de configuración no son atajos: flujo completo.
+
+Los atajos no eximen de la regla de El Bueno: la suite completa de tests debe quedar en verde antes de cerrar el paso. Lo que el atajo evita es **volver a ejecutarla** cuando el paso no ha podido alterarla; si tienes cualquier duda de que siga en verde, ejecútala.
+
+Cuando omitas una fase por atajo, dilo al usuario al cerrar el paso, con la clase que aplicaste.
 
 ---
 
@@ -150,21 +176,6 @@ git add -N . && git diff --stat -- ':!*test*' ':!*spec*'
 Los globs `':!*test*' ':!*spec*'` son una aproximación: excluyen cualquier ruta que contenga esas subcadenas (también un `latest_prices.py` de producción) y no cubren otros layouts. Ajústalos al patrón real de tests del proyecto, que El Listo dejó en el Contexto del plan. El mismo patrón ajustado vale para la instantánea de la FASE 2.
 
 **En cada encargo, dile al rol qué tamaño tiene el cambio** y qué se espera de él. Un rol sin límites escala su esfuerzo a su propia ambición, no a la del cambio.
-
----
-
-# Atajos
-
-Antes de lanzar a los verificadores, examina el diff sin stagear del paso y clasifícalo. Ejecuta primero `git add -N .`: sin él los ficheros nuevos no aparecen en `git diff` y un paso que crea ficheros parecería vacío. El `-N` solo registra el nombre; no stagea contenido y no rompe la frontera entre pasos.
-
-- **Solo comentarios o documentación** (sin efecto en la ejecución): omite la FASE 2. Omite también la FASE 3, salvo que los comentarios documenten comportamiento o contratos públicos (por ejemplo, docstrings de una API): en ese caso El Feo sí entra.
-- **Solo tests** (sin código de producción): omite la FASE 2. El Feo sí entra: debe auditar que los tests respeten la especificación.
-- **Solo formateo automático** (salida de un formateador o linter, sin cambios semánticos): omite las FASES 2 y 3.
-- **Solo recursos puramente estéticos** (CSS visual, imágenes): omite la FASE 2.
-
-El atajo debe ser evidente mirando el diff. Ante cualquier duda sobre la clasificación, ejecuta el flujo completo. Los renombrados y los cambios de configuración no son atajos: flujo completo.
-
-Los atajos no eximen de la regla de El Bueno: la suite completa de tests debe quedar en verde antes de cerrar el paso.
 
 ---
 
@@ -226,7 +237,7 @@ Si su respuesta no es ni `SOBREVIVIO_AL_MALO` ni un informe de reproducción (po
 
 Solo cuando El Malo ha respondido SOBREVIVIO_AL_MALO, ha agotado sus lanzamientos (con lo pendiente ya recogido como observaciones) o la FASE 2 se ha omitido por atajo.
 
-**El Feo no ejecuta nada, y no puede**: sus herramientas son de lectura. Antes de lanzarlo, genera el fichero con el diff **en este momento** —no reutilices uno anterior: si la FASE 2 corrigió algo, el código ya no es el de la FASE 1— y reúne los números de `test`, `lint`, `build` y chequeo de tipos **más recientes**: los de la FASE 1 solo valen si nadie ha tocado el código desde entonces; si hubo correcciones, los de la última corrección. Sin eso no tiene con qué auditar.
+**El Feo no ejecuta nada, y no puede**: sus herramientas son de lectura. Antes de lanzarlo, genera el fichero con el diff **en este momento** —no reutilices uno anterior: si la FASE 2 corrigió algo, el código ya no es el de la FASE 1— y reúne los números de `test`, `lint`, `build` y chequeo de tipos **más recientes**: los de la FASE 1 solo valen si nadie ha tocado el código desde entonces; si hubo correcciones, los de la última corrección. Sin eso no tiene con qué auditar. Si el paso entró por un atajo que no ejecuta todos los verificadores, pásale los últimos números válidos diciéndole de cuándo son y por qué el paso no los ha vuelto a generar: un paso documental no puede haberlos alterado, y El Feo tiene que poder distinguir eso de un descuido.
 
 **Lanza el subagente `feo` con el encargo definido en `feo.md`** (mismo directorio de comandos que este): ahí está la lista exacta de campos que hay que darle. No la repitas aquí ni la recortes. No adoptes su rol tú: la auditoría debe hacerse sin el contexto de la implementación.
 
@@ -241,7 +252,7 @@ Si devuelve un Informe de Desviaciones:
 - **congela el estado previo** (ver «El diff de la corrección», en la FASE 2)
 - devuelve el control a El Bueno
 - corrige únicamente esas desviaciones, dejando la suite de tests en verde
-- **regenera el fichero del diff y los números** de `test`, `lint`, `build` y chequeo de tipos tras la corrección: El Feo no distingue un diff viejo de uno nuevo, y auditar el diff previo a la corrección le hace re-reportar lo ya corregido y quemar lanzamientos
+- **regenera el fichero del diff y los números** de `test`, `lint`, `build` y chequeo de tipos tras la corrección: El Feo no distingue un diff viejo de uno nuevo, y auditar el diff previo a la corrección le hace re-reportar lo ya corregido y quemar lanzamientos. El diff se regenera siempre; los números, solo los que la clase del paso ejecuta —una corrección documental no los mueve—, y de los que no regeneres le dices otra vez de cuándo son y por qué
 - vuelve a lanzar el subagente `feo` en una invocación nueva, indicándole que es una **verificación**, con los campos adicionales que `feo.md` define para ese caso: comprueba las correcciones sin repetir la auditoría completa
 
 Máximo:

@@ -54,9 +54,9 @@ Por cada unidad de trabajo pendiente (paso o subpaso):
 
   FASE 1 — El Bueno implementa el paso y deja la suite de tests en verde
      │
-     │  (atajo: si el diff solo trae comentarios, tests, formateo
-     │   automático o recursos estéticos, el Sheriff omite las
-     │   fases que no aportan)
+     │  (atajo: el Sheriff clasifica el diff —comentarios, tests,
+     │   formateo automático, recursos estéticos— y de esa clase
+     │   salen qué verificadores ejecuta y qué fases entran)
      │
   FASE 2 — El Malo (subagente) ataca los cambios: nulls, límites,
      │     datos corruptos, concurrencia... Sus tests quedan en la
@@ -101,7 +101,7 @@ Si El Feo rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaj
 - **Fallo u observación.** El Malo solo bloquea lo alcanzable con datos que el sistema produce de verdad; lo que exige forzar mocks, cambiar contratos fuera del paso o cuesta más que el riesgo real se entrega como observación al cerrar el paso. Tú decides si se corrige.
 - **La deuda técnica queda escrita.** Lo que El Malo encontró y no se corrigió —fallos degradados al agotar sus lanzamientos, observaciones que piden una decisión— no puede vivir solo en la conversación, que se pierde. El Sheriff lo anota en `TECHNICAL_DEBT.md`, junto al plan: cada entrada con su reproducción, su test omitido (skip) que la reproduce y qué haría falta para saldarla. Reactivar el test es retomar la deuda.
 - **El Feo lee, no ejecuta.** Sus herramientas son de solo lectura: el diff y los resultados de test, lint, build y tipos le llegan ya ejecutados en el encargo. Audita si el código cumple la especificación leyendo; que funciona ya lo demostraron los tests y El Malo.
-- **Atajos para pasos triviales.** Si el diff del paso solo contiene comentarios o documentación, solo tests, solo formateo automático o solo recursos puramente estéticos (CSS visual, imágenes), el Sheriff omite a los verificadores que no aportan en ese caso: El Malo no ataca comentarios y El Feo no audita la salida de un formateador. Los tests nuevos sí pasan siempre por El Feo (un assert aflojado es una desviación), y ante la duda se ejecuta el flujo completo.
+- **Atajos para pasos triviales.** Antes de verificar nada, el Sheriff clasifica el diff del paso, y esa clase decide dos cosas: **qué verificadores se ejecutan** y **qué fases entran**. Un paso de solo documentación no ejecuta ninguno —no toca nada que `test`, `lint` o `build` puedan medir, y ejecutarlos cuesta minutos para producir números que nadie va a usar—; uno de solo formateo automático ejecuta `lint`; uno de solo tests, la suite. En cuanto a fases: El Malo no ataca comentarios y El Feo no audita la salida de un formateador, pero los tests nuevos sí pasan siempre por El Feo (un assert aflojado es una desviación). La clase es la del cambio **más exigente** del diff: si toca `PLAN.md` junto a código, manda el código. Lo que el atajo ahorra es *reejecutar*, nunca el estado verde: la suite debe estarlo igual, y ante la duda se ejecuta el flujo completo.
 - **El Malo escribe tests, no producción.** El Sheriff guarda una instantánea del diff de producción antes de lanzarlo y la compara al terminar: cualquier cambio de producción aparecido durante el ataque se revisa antes de seguir, porque El Feo audita justo después y no distingue la mano de El Malo de la de El Bueno.
 - **Los topes se gastan en veredictos.** Si un verificador responde algo que no es ni su token de aprobación ni su informe (por ejemplo, le faltaba un dato del encargo), se completa el encargo y se relanza sin consumir el tope de tres lanzamientos: los topes miden rechazos del código, no defectos del encargo.
 
