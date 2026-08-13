@@ -68,7 +68,7 @@ No la escribes tú: es del Sheriff, que la rellena preguntando al usuario en cua
 
 - **Al cerrar cada paso**: commit y push | commit sin push | nada, dejar en staging
 - **Formato de commit**: el formato literal acordado, con un ejemplo | no aplica
-- **Entre pasos**: parar y esperar revisión | encadenar el siguiente
+- **Entre pasos**: parar y avisar al usuario | encadenar el siguiente
 - **Notas del usuario**: su respuesta en texto libre, tal cual, si la hubo
 
 ## Pasos

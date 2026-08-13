@@ -41,7 +41,7 @@ El plan contiene:
 - cada unidad de trabajo recibe su ciclo completo —El Bueno, El Malo, El Feo— y su propio commit;
 - al cerrar un subpaso, si era el último sin marcar de su paso, marca también el checkbox del paso en el mismo commit.
 
-Donde este fichero dice «paso», léase «la unidad de trabajo»: el flujo es idéntico para un paso suelto y para un subpaso.
+Donde este fichero dice «paso», léase «la unidad de trabajo»: el flujo es idéntico para un paso suelto y para un subpaso. La única excepción es la **parada entre pasos** del `## Modo de ejecución`, que sí distingue: se detiene al cerrar un paso, nunca entre los subpasos de uno.
 
 El área de staging de git marca la frontera entre pasos:
 
@@ -89,12 +89,22 @@ Antes de implementar nada, el plan debe llevar una sección `## Modo de ejecuci�
 
 **Si falta, pregúntaselo al usuario y escríbela tú en el plan antes de seguir.** Es la única vez que el flujo se para para preguntar algo que no es un problema. Pregunta en este orden:
 
-1. **«Al terminar cada paso, ¿hago commit y push automáticamente?»**
+1. **«Al terminar cada unidad de trabajo, ¿hago commit y push automáticamente?»**
 
    - **Si responde que sí**, pregunta a continuación: **«¿Qué formato de commit prefieres?»** Antes de preguntar mira el historial (`git log --oneline -20`) y ofrécele el estilo que ya use el repo como una de las opciones, junto a Conventional Commits. Anota el formato literal que elija, con un ejemplo.
-   - **Si responde que no**, pregunta a continuación: **«¿Qué hago entonces al cerrar cada paso?»** Las dos salidas habituales son parar y esperar su revisión, o dejar los cambios en staging y encadenar el paso siguiente sin parar.
+   - **Si responde que no**, los cambios de cada unidad aprobada se quedan en staging, sin commit.
 
-El usuario puede contestar en texto libre y describir un flujo distinto del que le ofreces —commit sí pero push no, push solo al terminar el plan, commit únicamente en los pasos que toquen cierta zona—. Manda lo que diga, no las opciones que le presentaste: recoge su respuesta tal cual en las notas.
+   Si el plan tiene pasos con subpasos, dile qué implica: **el commit es por unidad de trabajo**, así que cada subpaso cierra con el suyo y un paso de tres subpasos produce tres commits, no uno. Es la consecuencia directa de que el checkbox más profundo sea la unidad: cada subpaso pasa su ciclo completo y deja la suite en verde, luego es commiteable por sí solo. Si prefiere un commit por paso, es texto libre válido: anótalo y agrupa (ver más abajo).
+
+2. **«¿Lanzo el plan entero de una tirada, o me detengo al terminar cada paso para avisarte?»**
+
+   Explícale qué gana con cada opción: **de una tirada** el plan se ejecuta hasta el final sin intervención; **parando** recupera el control al cerrar cada paso, que es el momento natural para hacer un `/clear` —la sesión llega larga tras varios ciclos de El Malo y El Feo— o para darte indicaciones antes de seguir.
+
+   Dile también que la parada es **a nivel de paso, no de subpaso**: los subpasos de un mismo paso se encadenan siempre sin parar, y la parada llega cuando cae el último de ellos. Así el plan se corta por juntas naturales y no en mitad de un paso a medio hacer.
+
+   Las dos preguntas tienen por tanto granularidad distinta, y conviene decirlo: **el commit va por unidad de trabajo, la parada por paso**. En un paso con tres subpasos y ambas opciones activas: tres commits (y tres push, si los pidió) y una sola parada, al caer el tercero.
+
+El usuario puede contestar en texto libre y describir un flujo distinto del que le ofreces —commit sí pero push no, push solo al terminar el plan, commit únicamente en los pasos que toquen cierta zona, parar solo en los pasos que toquen cierta zona, parar también entre subpasos, parar cada N pasos—. Manda lo que diga, no las opciones que le presentaste: recoge su respuesta tal cual en las notas.
 
 Si la rama actual es la principal del repo (`main` o `master`) y ha pedido push automático, dilo al preguntar: quizá prefiera una rama aparte. No cambies de rama por tu cuenta.
 
@@ -103,13 +113,15 @@ Escribe entonces en el plan, justo antes de `## Pasos`:
 ```markdown
 ## Modo de ejecución
 
-- **Al cerrar cada paso**: commit y push | commit sin push | nada, dejar en staging
+- **Al cerrar cada unidad de trabajo** (cada checkbox, subpaso incluido): commit y push | commit sin push | nada, dejar en staging
 - **Formato de commit**: el formato literal acordado, con un ejemplo | no aplica
-- **Entre pasos**: parar y esperar revisión | encadenar el siguiente
+- **Entre pasos** (al caer el último subpaso del paso, no entre subpasos): parar y avisar al usuario | encadenar el siguiente
 - **Notas del usuario**: su respuesta en texto libre, tal cual, si la hubo
 ```
 
 Enséñale la sección escrita y sigue. No hace falta que la confirme: son sus propias respuestas.
+
+Si pidió **un commit por paso** en vez de por unidad de trabajo, anótalo en `Al cerrar cada unidad de trabajo` con esas palabras. Entonces cada subpaso aprobado se queda en staging —marca de checkbox incluida— y el commit se hace al cerrar el último subpaso del paso, con un mensaje que describe el paso entero. No mezcles: staging entre subpasos, commit al cerrar el paso.
 
 ---
 
@@ -269,16 +281,16 @@ En ese momento:
 
 1. Marca el checkbox de la unidad de trabajo completada en el plan y, si era el último subpaso sin marcar de su paso, marca también el del paso.
 2. Pasa todos los cambios al área de staging (`git add -A`), incluida la marca del checkbox.
-3. Aplica el `## Modo de ejecución` del plan:
-   - **si pide commit**: commitea lo stageado con el formato anotado allí. El mensaje describe el paso cerrado, no el patrón.
+3. Aplica el `## Modo de ejecución` del plan. Salvo que allí diga otra cosa, se aplica **a cada unidad de trabajo**, subpasos incluidos: un subpaso aprobado cierra con su propio commit y su propio push, igual que un paso suelto. Solo si el modo pide expresamente agrupar por paso, los subpasos se quedan en staging y el commit espera al último de ellos.
+   - **si pide commit**: commitea lo stageado con el formato anotado allí. El mensaje describe la unidad cerrada —el subpaso, si lo era—, no el patrón ni el paso padre.
    - **si además pide push**: empuja a la rama actual. Nunca `--force`, nunca cambies de rama, nunca crees una rama nueva por tu cuenta. Si el push falla —no hay remoto, upstream sin configurar, rechazo por divergencia—, no lo reintentes a ciegas: el commit ya está hecho, así que dilo con el error literal y continúa.
    - **si no pide nada**: deja los cambios en staging, sin commit.
 4. Muestra al usuario las observaciones acumuladas, si las hay. Las que sean fallos degradados por agotar lanzamientos ya están en `TECHNICAL_DEBT.md` (se anotaron al degradar); las observaciones voluntarias de El Malo —lo que reportó junto a su veredicto sin bloquear— añádelas también allí si señalan un comportamiento que alguien debería decidir si se corrige, y no si son meros comentarios.
-5. Declara: PASO COMPLETADO, diciendo en la misma línea qué se hizo con los cambios (commit y push, commit, o en staging).
+5. Declara: PASO COMPLETADO, diciendo en la misma línea qué unidad se ha cerrado —si era un subpaso, cuál y de qué paso— y qué se hizo con los cambios (commit y push, commit, o en staging).
 
 Después, para decidir si sigues:
 
 - Si se pidió «solo un paso» en los argumentos, para aquí. Este argumento manda sobre el modo de ejecución.
-- Si el `## Modo de ejecución` dice parar entre pasos, para aquí: resume qué queda pendiente en el plan y espera a que el usuario te diga que sigas. No arranques la FASE 1 del paso siguiente.
+- Si el `## Modo de ejecución` dice parar entre pasos **y la unidad que acabas de cerrar era un paso completo** —un paso sin subpasos, o el último subpaso sin marcar de su paso—, para aquí: resume qué queda pendiente en el plan, dile que puede hacer `/clear` y retomar con `/gbu`, y espera a que te diga que sigas. No arranques la FASE 1 de la unidad siguiente. Si lo que cerraste fue un subpaso que deja su paso a medias, no pares: encadena el subpaso siguiente.
 - Si quedan pasos pendientes y el modo dice encadenar, vuelve a la FASE 1 con el siguiente paso.
 - Si no quedan pasos pendientes, declara: COMPLETADO CON ÉXITO y finaliza la ejecución.

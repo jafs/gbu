@@ -46,8 +46,9 @@ FASE 0 (una sola vez)
 
 FASE 0b (una sola vez)
   El Sheriff te pregunta cómo quieres cerrar cada paso: ¿commit y
-  push automáticos?, ¿con qué formato de mensaje?, y si no, ¿parar
-  o encadenar? Lo anota en PLAN.md y no vuelve a preguntar.
+  push automáticos?, ¿con qué formato de mensaje?, ¿el plan entero
+  de una tirada o parando al terminar cada paso? Lo anota en
+  PLAN.md y no vuelve a preguntar.
 
 Por cada unidad de trabajo pendiente (paso o subpaso):
 
@@ -76,7 +77,9 @@ Por cada unidad de trabajo pendiente (paso o subpaso):
                  si era su último subpaso), cambios a staging
                  y lo que diga el Modo de ejecución: commit y push,
                  solo commit, o nada. Si pediste parar entre pasos,
-                 el Sheriff se detiene aquí y espera.
+                 el Sheriff se detiene al cerrar el paso —no entre
+                 subpasos— y espera, para que puedas hacer /clear
+                 o darle indicaciones antes de seguir.
 
 Cuando no quedan pasos: COMPLETADO CON ÉXITO
 ```
@@ -89,6 +92,7 @@ Si El Feo rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaj
 - **Malo antes que Feo.** Primero se estabiliza el comportamiento, después se pule la forma. Así los arreglos de estilo del bucle con El Feo no obligan a re-atacar: los tests adversarios de El Malo ya montan guardia en la suite, que El Bueno debe mantener en verde tras cada ajuste.
 - **El staging de git marca la frontera entre pasos.** Lo aprobado se stagea; lo que está sin stagear es el paso en curso. Los verificadores solo miran lo sin stagear, así que nunca re-auditan trabajo ya validado. En mitad de un paso nunca se commitea.
 - **La historia del repositorio es tuya, pero puedes delegarla.** Por defecto el patrón no hace commits. Si al arrancar le dices que sí, cada paso aprobado se cierra con un commit —y un push si lo pides— usando el formato de mensaje que elijas. La respuesta vive en `## Modo de ejecución` dentro de `PLAN.md`, así que sobrevive entre sesiones y solo se pregunta una vez.
+- **Tú decides el ritmo.** Al arrancar el plan el Sheriff también te pregunta si quieres el plan entero de una tirada o que se detenga al terminar cada paso. Parar te devuelve el control en el momento natural para hacer `/clear` —la sesión se alarga tras varios ciclos de Malo y Feo— o para dar indicaciones. Ojo a la granularidad, que no es la misma que la del commit: **el commit va por unidad de trabajo y la parada por paso**, así que un paso con tres subpasos produce tres commits (y tres push, si los pediste) y una sola parada, al caer el tercero. Como el resto del Modo de ejecución, admite respuesta libre: agrupar los commits por paso, parar cada N pasos, parar solo en los que toquen cierta zona, o parar también entre subpasos.
 - **El checkbox es la unidad de trabajo.** Cada checkbox recibe su propio ciclo completo —Bueno, Malo, Feo— y su propio commit. Por eso El Listo parte los pasos que abarcan varias unidades de comportamiento o varias capas en subpasos indentados (lógica pura → infraestructura → enlace), cada uno commiteable por sí solo y con la suite en verde; el checkbox del paso queda como *roll-up*. Un checkbox demasiado ancho produce commits difíciles de seguir, obliga a los verificadores a cubrir demasiada superficie de una sentada y mezcla las correcciones con trabajo ya aprobado. Los pasos que ya son pequeños no se parten.
 - **Informes agregados, verificaciones acotadas.** Malo y Feo completan su pasada entera y entregan todos los hallazgos de una vez (una corrección por iteración, no una por fallo). Cuando vuelven a entrar, solo verifican el informe anterior y lo tocado por la corrección: el Sheriff les pasa un diff que contiene **solo el arreglo** —congelando el estado previo en staging antes de corregir— y re-mide el presupuesto sobre él, no sobre el paso entero.
 - **Salida disciplinada.** Los verificadores no narran su proceso ni enumeran lo que está bien: responden con el token exacto de aprobación o con el informe de lo que falla. Nada más.
