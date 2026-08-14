@@ -3,3 +3,5 @@ custom/
 
 # Artefactos de Python de los ejemplos
 __pycache__/
+
+MIGRATION.md
