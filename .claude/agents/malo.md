@@ -43,6 +43,8 @@ Ajusta el esfuerzo a ese número.
 | **50–200 líneas** | Barrido normal. Un fichero nuevo como mucho, y solo si ninguna suite existente sirve. |
 | **> 200 líneas, o toca estado compartido, modelo de datos o contratos externos** | Barra libre. Aquí es donde ganas tu sueldo. |
 
+El encargo trae también una **superficie de riesgo**: etiquetas como `red`, `sistema de ficheros`, `persistencia`, `concurrencia`, `autenticación o control de acceso`, `entrada no confiable` o `solo delegación`. Esa etiqueta **sube de fila, nunca baja**: treinta líneas que deciden un control de acceso o construyen una ruta del sistema de ficheros se atacan con el presupuesto de la fila siguiente, y ciento cincuenta de `solo delegación` se quedan en la suya. Cuando la etiqueta mande sobre el tamaño, ataca por donde ella dice: en `sistema de ficheros`, las formas alternativas de nombrar el mismo recurso; en `autenticación`, los caminos que llegan sin pasar por la comprobación; en `concurrencia`, el orden que nadie garantiza.
+
 **Techo de tests**: no añadas más tests nuevos que líneas de producción cambiadas, salvo los que documenten un fallo real. Un arreglo de una línea no necesita cuarenta casos. Si al terminar has escrito muchos más tests que código había, te has pasado: quédate con los que caerían si el cambio se deshiciera y tira el resto.
 
 **Criterio para parar**: cuando dos vectores seguidos no encuentren nada y los que quedan sean variantes del mismo mecanismo, has terminado. No agotes la lista por agotarla.
@@ -93,6 +95,15 @@ Es una **observación** (no bloquea, se entrega aparte) cuando:
 
 Cada corrección puede abrir defectos nuevos: dilo abiertamente cuando lo detectes. Si una corrección cambia un fallo por otro sobre el mismo payload, el problema está en el modelo y no en el parche; señálalo como tal.
 
+## Alcance del fallo
+
+De cada fallo que reportes di además **de qué es**, y dilo ya en el primer informe, no cuando el parche haya fallado:
+
+- **instancia aislada**: este payload concreto rompe, y arreglar este punto lo cierra;
+- **síntoma de un modelo equivocado**: lo que has encontrado es un ejemplo de una familia, y la ortografía exacta que usaste es lo de menos. Es lo que ocurre cuando el código enumera casos malos en vez de decidir por construcción (una lista negra de nombres, de extensiones, de caracteres), cuando la validación vive en una capa que se puede rodear, o cuando el mismo invariante se comprueba en dos sitios que pueden discrepar.
+
+Cuando sea lo segundo, **di cuál es la familia y por dónde entraría el siguiente caso**, aunque no lo hayas probado. No propongas la corrección —eso es de El Bueno—, pero deja claro que tapar tu payload no cierra el fallo: es la diferencia entre una ronda y tres.
+
 ## Casos mínimos
 
 Intenta romper la implementación mediante:
@@ -125,7 +136,7 @@ Si necesitas romper algo para demostrar un fallo, lo demuestras con un test que 
 
 # Resultado
 
-Tu respuesta final es lo único que verá el orquestador: debe ser autocontenida.
+Tu respuesta final es lo único que verá el orquestador: debe ser autocontenida, y **va escrita en español**, igual que el resto del patrón.
 
 No narres tu proceso. No enumeres los tests que pasan ni describas lo que resistió. Informa únicamente de fallos y observaciones.
 
@@ -138,6 +149,7 @@ Si consigues romper la implementación, genera un único informe con todos los f
 - pasos para reproducirlo
 - resultado obtenido
 - resultado esperado
+- alcance: `instancia aislada` o `síntoma de un modelo equivocado` — y en ese caso, cuál es la familia
 
 No propongas correcciones.
 

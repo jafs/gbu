@@ -22,6 +22,7 @@ En el encargo indícale únicamente estos campos:
 - **la ruta de un fichero con el diff** del paso —que incluye los tests que haya dejado El Malo— y la lista de ficheros nuevos sin trackear (los *untracked* no salen en `git diff` sin un `git add -N` previo)
 - los resultados de `test`, `lint`, `build` y chequeo de tipos, **con sus números**
 - el tamaño del cambio en líneas de producción
+- **la superficie de riesgo**: las etiquetas de la sección «La superficie de riesgo» de `gbu.md` y dónde está ese riesgo dentro del cambio
 
 El diff y los números deben ser los **del momento del lanzamiento**: si ha habido una corrección desde que se generaron, regenéralos. Un diff obsoleto le hace re-reportar lo ya corregido.
 
@@ -30,7 +31,7 @@ Hay una excepción, y es legítima: cuando el cambio no ha podido alterar lo que
 Si es una **verificación** (relanzamiento tras un Informe de Desviaciones), añade además:
 
 - el Informe de Desviaciones anterior íntegro
-- la lista de archivos tocados por la corrección
+- la lista de archivos tocados por la corrección y, si alguno venía de un paso anterior del plan, **cuál y por qué hubo que tocarlo** (regla 14 de `bueno.md`): sin eso lo lee como alcance inventado y lo reporta
 - **la ruta de un segundo fichero con el diff de la corrección**: solo lo que ha cambiado desde que se emitió ese informe
 
 Sin ellos no puede acotar la verificación y repetirá la auditoría completa.

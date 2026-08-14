@@ -21,6 +21,7 @@ En el encargo indícale únicamente estos campos:
 - el paso del plan que se acaba de implementar
 - la lista de archivos modificados, **incluidos los nuevos sin trackear** (no salen en `git diff` sin un `git add -N` previo)
 - el tamaño del cambio en líneas de producción
+- **la superficie de riesgo**: las etiquetas de la sección «La superficie de riesgo» de `gbu.md` (`red`, `sistema de ficheros`, `persistencia`, `concurrencia`, `autenticación o control de acceso`, `entrada no confiable`, `solo delegación`) y dónde está ese riesgo dentro del cambio
 
 Si es una **verificación** (relanzamiento tras un informe de fallos, o pasada acotada tras una corrección funcional de la FASE 3), añade además:
 

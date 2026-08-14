@@ -59,6 +59,8 @@ Esta sección es la única documentación que verá el resto de agentes: debe se
 - el framework de pruebas y los comandos exactos para ejecutar la suite, el lint, la build y el chequeo de tipos
 - el patrón de rutas y nombres de los ficheros de test (dónde viven, cómo se llaman): el orquestador lo necesita para separar producción de tests al medir
 - los comandos o skills propios de revisión de código del proyecto, si existen
+- **si el proyecto tiene interfaz de usuario**: cómo se arranca la aplicación y cómo se ejerce esa interfaz —el runner con entorno de DOM, la herramienta E2E, o el comando para levantarla y la URL—, y si no hay ninguna forma, dilo explícitamente. El orquestador lo necesita para no cerrar pasos de UI sin haberla ejecutado nunca
+- **las reglas del proyecto que se puedan comprobar leyendo**, en forma de lista y enunciadas como reglas, no como prosa: dependencias permitidas entre capas, dónde vive cada tipo de fichero, cómo se construyen los objetos, idioma de nombres y comentarios, política de comentarios. El Feo audita contra esta lista y solo puede rechazar lo que pueda anclar a una regla escrita: lo que no esté aquí, para él no existe
 
 Sé conciso: todos los agentes releen esta sección en cada invocación. Incluye solo lo que condiciona esta tarea y procura que quepa en una página.
 
