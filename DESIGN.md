@@ -12,7 +12,10 @@ El origen y la motivación del patrón están en dos artículos: [«cómo poner 
 FASE 0 (una sola vez)
   El Listo analiza el proyecto y los acuerdos del equipo
   y escribe PLAN.md: Tarea + Contexto + Pasos con checkboxes
-  (los pasos grandes van partidos en subpasos indentados)
+  (los pasos grandes van partidos en subpasos indentados, y cada
+   uno trae rutas exactas, fichero modelo y verificación)
+  Si el proyecto se contradice —dos formas de testear, dos maneras
+  de construir lo mismo—, se detiene y te pregunta cuál es la buena
 
 FASE 0b (una sola vez)
   El Sheriff te pregunta cómo quieres cerrar cada paso: ¿commit y
@@ -33,19 +36,23 @@ Por cada unidad de trabajo pendiente (paso o subpaso):
      │     suite como regresión.
      │       ├─ SOBREVIVIO_AL_MALO → continúa
      │       └─ Informe de fallos → El Bueno corrige todo de una
-     │          pasada y El Malo verifica (máx. 3 lanzamientos;
-     │          lo que quede tras el tope se te entrega como
-     │          observaciones y el paso sigue, salvo que sea
-     │          grave: entonces el Sheriff se detiene y pregunta)
+     │          pasada y El Malo verifica (3 lanzamientos, o 4 si
+     │          cada uno trae fallos nuevos y distintos; si el mismo
+     │          fallo se reproduce dos veces seguidas el Sheriff se
+     │          detiene). Lo que quede tras el tope se te entrega
+     │          como observaciones y el paso sigue, salvo que sea
+     │          grave: entonces también se detiene y pregunta.
      │
   FASE 3 — El Feo (subagente) audita contra el plan y las convenciones
-     │       ├─ APROBADO_POR_EL_FEO → continúa
+     │       ├─ APROBADO_POR_EL_FEO (con observaciones o sin ellas)
+     │       │  → continúa
      │       └─ Informe de Desviaciones → El Bueno corrige y El Feo
      │          verifica (máx. 3 lanzamientos). Si alguna desviación
      │          era funcional, El Malo da una última pasada acotada.
      │
   Fin del paso — checkbox marcado en PLAN.md (y el del paso padre
-                 si era su último subpaso), cambios a staging
+                 si era su último subpaso), desviaciones respecto
+                 al plan anotadas en él, cambios a staging
                  y lo que diga el Modo de ejecución: commit y push,
                  solo commit, o nada. Si pediste parar entre pasos,
                  el Sheriff se detiene al cerrar el paso —no entre
@@ -63,6 +70,10 @@ Si El Feo rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaj
 
 **`PLAN.md` es el único artefacto compartido.** El Listo es el único que lee la documentación del proyecto (`CLAUDE.md`, README, acuerdos de equipo): sintetiza todo lo relevante en la sección "Contexto" del plan, y el resto de agentes trabajan exclusivamente con el plan y el código en disco. Menos relecturas, menos tokens, arranques en frío baratos. Con una consecuencia: **El Feo solo puede hacer valer lo que esté escrito ahí**, así que esa sección lleva las convenciones enunciadas como reglas comprobables leyendo, no como prosa.
 
+**El plan tiene que estar terminado, no solo escrito.** Cada paso lleva las rutas exactas que toca, el fichero existente al que debe parecerse y dónde vive su test. Sin eso, los otros tres roles investigan por separado lo mismo —y a veces con resultados distintos—, el paso se cierra desviándose del plan y la desviación acaba solo en el mensaje del commit. Por la misma razón El Listo se detiene ante una **incongruencia** del proyecto (dos formas de testear conviviendo, dos maneras de construir el mismo objeto, una convención documentada que el código incumple) en lugar de elegir en silencio: su elección se convierte en la regla que El Feo hará valer en cada paso, así que elegir mal significa dedicar el plan entero a reproducir con rigor el error que se quería dejar atrás. Un hueco se resuelve con el supuesto más simple; una contradicción, preguntando.
+
+**Lo que acabó distinto se escribe en el plan.** Al cerrar cada unidad, el Sheriff anota en una sección `## Desviaciones` qué decía el plan, qué se hizo y por qué. Sirve para dos cosas: el plan archivado es el historial del proyecto, y El Feo —que llega sin memoria a cada paso— deja de re-reportar en el paso cinco una decisión sancionada en el dos.
+
 **El checkbox es la unidad de trabajo.** Cada checkbox recibe su propio ciclo completo —Bueno, Malo, Feo— y su propio commit. Por eso El Listo parte los pasos que abarcan varias unidades de comportamiento o varias capas en subpasos indentados (lógica pura → infraestructura → enlace), cada uno commiteable por sí solo y con la suite en verde; el checkbox del paso queda como *roll-up*. Un checkbox demasiado ancho produce commits difíciles de seguir, obliga a los verificadores a cubrir demasiada superficie de una sentada y mezcla las correcciones con trabajo ya aprobado. Los pasos que ya son pequeños no se parten.
 
 **Los requisitos nuevos no entran en el paso en curso.** Si a mitad de plan pides algo imprevisto, el Sheriff cierra la unidad que tenía entre manos y vuelve a llamar a El Listo —la única vez que reaparece— para insertar el paso nuevo donde le toque por dependencias, con tu confirmación. Ampliar el paso vivo invalidaría el encargo ya dado y mezclaría trabajo sin planificar con trabajo ya atacado y auditado.
@@ -78,6 +89,12 @@ Si El Feo rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaj
 **Informes agregados, verificaciones acotadas.** Malo y Feo completan su pasada entera y entregan todos los hallazgos de una vez (una corrección por iteración, no una por fallo). Cuando vuelven a entrar, solo verifican el informe anterior y lo tocado por la corrección: el Sheriff les pasa un diff que contiene **solo el arreglo** —congelando el estado previo en un índice de git aparte antes de corregir, para no tocar el staging real ni la frontera entre pasos— y re-mide el presupuesto sobre él, no sobre el paso entero.
 
 **Salida disciplinada.** Los verificadores no narran su proceso ni enumeran lo que está bien: responden con el token exacto de aprobación o con el informe de lo que falla. La única concesión es una línea `Comprobado:` al principio de la respuesta de El Feo, con los ejes que revisó y los que dejó fuera: una aprobación sin traza no distingue «no había nada» de «no lo miré».
+
+**El veredicto es excluyente.** Informe de Desviaciones **o** token de aprobación, nunca los dos: si El Feo emite ambos y el orquestador decide mirando la última línea, el informe entero se ignora y el paso se cierra con todo lo que encontró dentro. Por eso el prompt de El Feo lo prohíbe explícitamente y el del Sheriff comprueba primero si hay informe y solo después el token. Un veredicto ambiguo se resuelve siempre hacia el rechazo, que es el lado barato de equivocarse.
+
+**Lo que no bloquea también tiene canal.** Todo lo que El Feo mete en el informe bloquea, y ahí entra casi todo lo que puede encontrar: solo reporta lo que incumple una regla escrita, y eso se corrige ahora, que es cuando es barato. La excepción es que **corregirlo se salga del plan** —un contrato con consumidores que el plan no cubre, un cambio con entidad de paso propio—: entonces va como observación, con su razón escrita, y acaba en `TECHNICAL_DEBT.md`. La regla que lo sostiene es que una desviación degradada a observación es una regla que nadie hace cumplir, así que la duda se resuelve hacia el informe.
+
+**Los topes cuentan familias, no lanzamientos.** Tres rondas es el tope base de El Malo, pero no todas las rondas dicen lo mismo. Si un lanzamiento **reproduce** un fallo ya reportado, el parche no cerró nada; a la segunda reproducción seguida el Sheriff se detiene y pregunta, porque el tercer lanzamiento va a decir lo mismo por el mismo precio. Si en cambio cada ronda trae fallos **nuevos y distintos**, el ataque está siendo productivo y se concede un cuarto lanzamiento (techo duro). Y tres familias distintas en una misma unidad de trabajo son un diagnóstico sobre el plan, no sobre el código: el paso abarcaba demasiado, y eso se dice al cerrar para que el siguiente plan no se parta igual.
 
 **Los topes se gastan en veredictos.** Si un verificador responde algo que no es ni su token de aprobación ni su informe (por ejemplo, le faltaba un dato del encargo), se completa el encargo y se relanza sin consumir el tope de tres lanzamientos: los topes miden rechazos del código, no defectos del encargo.
 
@@ -105,7 +122,7 @@ Y hay además una regla de **cuándo**: mientras se itera se usa el subconjunto 
 
 **La deuda técnica queda escrita.** Lo que El Malo encontró y no se corrigió —fallos degradados al agotar sus lanzamientos, observaciones que piden una decisión— no puede vivir solo en la conversación, que se pierde. El Sheriff lo anota en `TECHNICAL_DEBT.md`, junto al plan: cada entrada con su **severidad**, su reproducción, su test omitido (skip) que la reproduce y qué haría falta para saldarla. Reactivar el test es retomar la deuda; la severidad es lo que evita que un fichero de veinte entradas deje de leerse.
 
-**La UI se ejerce antes de cerrar.** Si «funciona» lo demuestran los tests, una interfaz con comportamiento de cliente rompe la premisa: la suite puede estar verde con la pantalla rota. Un paso de UI interactiva no cierra sin un test de interacción, un arranque real de la aplicación o, en su defecto, una deuda anotada.
+**La UI se ejerce antes de cerrar.** Si «funciona» lo demuestran los tests, una interfaz con comportamiento de cliente rompe la premisa: la suite puede estar verde con la pantalla rota. Un paso de UI interactiva no cierra sin un test de interacción, un arranque real de la aplicación o, en su defecto, una deuda anotada. Con una precisión que sale de usarlo: si la aplicación tiene sesión, el arranque real solo existe cuando el Contexto del plan dice **cómo llegar a un estado autenticado de desarrollo**. Si no lo dice, la opción desaparece —el Sheriff no improvisa accesos ni te pide credenciales— y el test de interacción pasa de preferible a obligatorio.
 
 ---
 

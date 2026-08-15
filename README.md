@@ -30,7 +30,7 @@ flowchart TD
     Q -- "No" --> FIN(["✅ COMPLETADO CON ÉXITO"])
     Q -- "Sí" --> B["🤠 El Bueno<br/>implementa y deja<br/>la suite en verde"]
     B --> A["🌵 El Malo — subagente aislado<br/>ataca los cambios"]
-    A -- "Informe de fallos<br/>(máx. 3 lanzamientos)" --> B
+    A -- "Informe de fallos<br/>(3 lanzamientos, 4 si son productivos)" --> B
     A -- "SOBREVIVIO_AL_MALO" --> F["👺 El Feo — subagente aislado<br/>audita plan y convenciones"]
     F -- "Informe de Desviaciones<br/>(máx. 3 lanzamientos)" --> B
     F -- "APROBADO_POR_EL_FEO" --> C["Cierre del paso<br/>checkbox marcado, git add -A<br/>y Modo de ejecución"]
@@ -40,6 +40,7 @@ flowchart TD
 En corto:
 
 - **La unidad de trabajo es el checkbox**: cada uno pasa el ciclo completo (Bueno → Malo → Feo) y cierra con su propio commit.
+- **El plan viene terminado**: cada paso trae sus rutas exactas, el fichero al que debe parecerse y dónde vive su test. Y si el proyecto se contradice, El Listo se detiene y pregunta en vez de elegir por ti.
 - **Las flechas de vuelta son bucles de corrección acotados**: al relanzar, el verificador solo recibe su informe anterior y el diff del arreglo, no el paso entero.
 - **El staging de git marca la frontera**: lo aprobado se stagea, lo sin stagear es el paso en curso, y los verificadores solo miran eso.
 - **Los topes no bloquean**: si El Malo agota sus lanzamientos, lo pendiente se entrega como observaciones y queda en `TECHNICAL_DEBT.md`; solo se detiene si lo pendiente es grave.

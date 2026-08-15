@@ -34,6 +34,7 @@ El plan contiene:
 - **Contexto**: las convenciones del proyecto que condicionan la implementación.
 - **Modo de ejecución**: qué hacer al cerrar cada paso —commit, push, parar o encadenar—, decidido por el usuario en la FASE 0b.
 - **Pasos**: la lista de pasos de implementación con checkboxes. El siguiente paso pendiente es el primer checkbox sin marcar.
+- **Desviaciones**: la lista de lo que acabó distinto de lo planificado, que escribes tú al cerrar cada unidad (ver «Finalización del paso»). No existe al empezar y puede no existir nunca.
 
 **La unidad de trabajo es el checkbox más profundo.** El Listo parte los pasos grandes en subpasos indentados debajo de su paso (`Paso 2.1`, `Paso 2.2`…), y el paso conserva su propio checkbox como *roll-up*. Por tanto:
 
@@ -65,7 +66,7 @@ Si el plan existe pero **no cumple el contrato** que el resto del patrón da por
 - una sección `## Contexto`
 - una sección `## Pasos` con checkboxes `- [ ]` / `- [x]`
 
-Que los pasos estén o no partidos en subpasos **no** forma parte de este contrato: un plan con pasos grandes es válido y se ejecuta tal cual. Si ves que los pasos pendientes son mucho más anchos de lo que conviene, dilo al usuario y ofrécele una pasada de El Listo en modo revisión para partirlos, pero no la lances por tu cuenta ni bloquees el flujo por ello.
+Que los pasos estén o no partidos en subpasos **no** forma parte de este contrato: un plan con pasos grandes es válido y se ejecuta tal cual. Tampoco lo forma que cada paso traiga sus rutas exactas, su fichero modelo y su verificación, aunque El Listo los escriba. Si ves que los pasos pendientes son mucho más anchos de lo que conviene, o que no dicen dónde va cada fichero —y eso te va a obligar a investigarlo en cada paso y a los verificadores a redescubrirlo—, dilo al usuario y ofrécele una pasada de El Listo en modo revisión, pero no la lances por tu cuenta ni bloquees el flujo por ello.
 
 Si falta cualquiera de las tres, el plan no sirve tal cual: sin `## Pasos` no sabes cuál es el siguiente paso ni puedes marcarlo al cerrar, y **sin `## Contexto` El Malo y El Feo se quedan sin convenciones ni comandos de test**, porque el plan es toda su documentación.
 
@@ -154,6 +155,8 @@ La clasificación va antes que la verificación y no al revés: un paso de solo 
 
 Si el paso no ejecuta alguno de los verificadores, **dile a El Feo por qué**: pásale los números de la última ejecución válida, con la clase que aplicaste y de cuándo son. La razón es siempre la misma —el cambio no ha podido alterar lo que ese verificador mide—, pero el alcance depende de la clase: un paso documental no ejecuta ninguno, uno de solo tests no ejecuta `build`, uno de formateo solo ejecuta `lint`.
 
+**Verificadores redundantes.** Si el `## Contexto` del plan declara que un verificador contiene a otro —lo habitual es que la build ejecute ya el chequeo de tipos—, ejecuta solo el que contiene y **pásale a El Feo los dos números diciendo cuál salió de cuál**: «el chequeo de tipos no se ejecutó por separado; la build, que lo incluye, terminó sin errores». Sin esa frase le falta un número y lo reclamará, que cuesta un lanzamiento entero. Si el Contexto no declara la redundancia, ejecuta los dos: quien la comprueba es El Listo, no la supongas tú por cómo suelen comportarse esas herramientas.
+
 ---
 
 # Atajos
@@ -187,7 +190,7 @@ El patrón entero descansa en que «funciona» lo demuestran los tests —por es
 Cuando el paso añada o cambie comportamiento de interfaz —efectos, estado de cliente, formularios, subidas de fichero, navegación—, **antes de cerrarlo** hace falta una de estas tres, por orden de preferencia:
 
 1. **un test de interacción** que monte el componente y ejerza el flujo (el runner del proyecto con entorno de DOM, o la herramienta E2E que el Contexto del plan indique);
-2. **un arranque real**: levantar la aplicación y recorrer el flujo, dejando constancia de qué se ejerció y qué se vio;
+2. **un arranque real**: levantar la aplicación y recorrer el flujo, dejando constancia de qué se ejerció y qué se vio. Si el flujo exige sesión, esta opción **solo existe si el `## Contexto` del plan dice cómo llegar a un estado autenticado de desarrollo**. Cuando el Contexto diga que no hay forma, dala por no disponible: no improvises un acceso, no toques la configuración de autenticación y **no le pidas credenciales al usuario**. Entonces la opción 1 deja de ser la preferible y pasa a ser obligatoria, y la 3 solo vale si tampoco ella es posible;
 3. si ninguna es posible con la infraestructura actual, **entrada en `TECHNICAL_DEBT.md`** diciendo qué comportamiento queda sin ejercer y qué haría falta para ejercerlo — y decírselo al usuario al cerrar el paso.
 
 Lo que no vale es cerrar en silencio. La tercera opción es una salida, no la primera elección: si se repite en varios pasos seguidos, el problema es la infraestructura de test del proyecto y merece decírselo al usuario.
@@ -253,6 +256,14 @@ Dos cuidados:
 - **Comprueba que el índice real sigue intacto** (`git status --short`) antes de continuar: si `GIT_INDEX_FILE` se te escapó de alguna orden, lo verás ahí.
 - La `<ruta-temporal>` va **fuera del repo**, o los ficheros aparecerían dentro del propio diff. En Windows, ruta absoluta nativa (`$env:TEMP\…`), no `/tmp`; en PowerShell la variable se pone con `$env:GIT_INDEX_FILE = "…"` y se quita con `Remove-Item Env:GIT_INDEX_FILE`.
 
+**Atajo para correcciones pequeñas.** Si sabes exactamente qué ficheros toca la corrección —lo normal, porque la acabas de hacer tú como El Bueno— y son unos pocos, no hace falta ceremonia: acota el diff a esos ficheros y sáltate el índice aparte.
+
+```bash
+git add -N . && git diff -- <fichero> <fichero> > <ruta-temporal>/gbu-fix.diff
+```
+
+El índice aparte es para cuando la corrección es amplia, incierta, o crea ficheros que no tienes listados: entonces una foto del «antes» es más fiable que tu memoria. Si usas el atajo y luego descubres que la corrección tocó algo que no habías previsto, regenera el diff con todos los ficheros afectados y dilo: un diff de la corrección incompleto hace que el verificador audite media corrección creyendo que la ve entera, que es peor que no acotarla.
+
 Si reporta fallos:
 
 - **congela el estado previo** (ver «El diff de la corrección», más abajo)
@@ -260,11 +271,18 @@ Si reporta fallos:
 - corrige todos los fallos del informe en una sola pasada, dejando la suite de tests en verde
 - vuelve a lanzar el subagente `malo` en una invocación nueva, indicándole que es una **verificación**, con los campos adicionales que `malo.md` define para ese caso: comprueba que ningún fallo se reproduce y ataca solo lo que la corrección ha cambiado, sin repetir la batería completa. **Re-mide el tamaño sobre la corrección**: el presupuesto de la verificación es el del arreglo, no el del paso entero. El comando del Coste aquí no sirve —mide el paso completo—: el tamaño del arreglo lo sabes de primera mano, porque la corrección la acabas de hacer tú como El Bueno
 
-Máximo:
+## Cuántos lanzamientos
 
-3 lanzamientos del subagente por paso.
+El tope base son **3 lanzamientos** del subagente por unidad de trabajo. Pero no todos los lanzamientos significan lo mismo, así que cada vez que recibas un informe compáralo con los anteriores y clasifícalo:
 
-Si tras el tercero siguen apareciendo fallos, no bloquees el paso: recoge lo que quede como **observaciones** para el usuario y continúa a la FASE 3. Los casos que el tipo de dominio declara imposibles son candidatos naturales a observación en vez de a corrección.
+- **Reproduce un fallo ya reportado** —el mismo fallo, o el mismo payload entrando por otra puerta—: la corrección no funcionó. **Si es la segunda reproducción seguida, detente y consulta al usuario**, sin gastar lo que quede del tope. Dos parches que no cierran el mismo agujero significan que se está corrigiendo el síntoma y no la clase, y el tercer lanzamiento va a decir exactamente lo mismo por 50.000 tokens más.
+- **Trae solo fallos nuevos y distintos** de todos los anteriores: el ataque está siendo productivo, no atascado. Aquí, y solo aquí, **puedes conceder un cuarto lanzamiento**. Techo duro: 4. Nunca un quinto, por productivo que parezca.
+
+El cuarto lanzamiento exige las dos condiciones a la vez: que ningún lanzamiento haya reproducido un fallo anterior **y** que el tercero solo trajera fallos nuevos. Si dudas, no lo concedas.
+
+Y anota la señal: **tres familias distintas de fallo en la misma unidad de trabajo no hablan del código, hablan del paso.** Significan que la unidad abarca demasiada superficie o que el modelo sobre el que está construida está mal planteado. Dilo al usuario al cerrar, con las tres familias: es lo que evita que el plan siguiente vuelva a partirse igual de mal.
+
+Si al agotar los lanzamientos siguen apareciendo fallos, no bloquees el paso: recoge lo que quede como **observaciones** para el usuario y continúa a la FASE 3. Los casos que el tipo de dominio declara imposibles son candidatos naturales a observación en vez de a corrección.
 
 **Salvo que lo que quede sea grave.** Si al agotar los lanzamientos lo pendiente es pérdida de datos, un control de acceso evadible o una regresión en algo que ya funcionaba, no lo degrades a observación: detente y consúltalo con el usuario, como en la FASE 3. El tope existe para que un paso no se atasque puliendo casos límite, no para cerrar un agujero anotándolo en un fichero.
 
@@ -297,11 +315,17 @@ De los que no re-ejecutes, dile a El Feo **de cuándo son y por qué el paso no 
 
 **Lanza el subagente `feo` con el encargo definido en `feo.md`** (mismo directorio de comandos que este): ahí está la lista exacta de campos que hay que darle. No la repitas aquí ni la recortes. No adoptes su rol tú: la auditoría debe hacerse sin el contexto de la implementación.
 
-Su respuesta empieza por una línea `Comprobado:` con los ejes que ha revisado y termina por el veredicto. **Mira la última línea**: si es exactamente
+Su respuesta empieza por una línea `Comprobado:` con los ejes que ha revisado y termina por el veredicto. Esa línea de cobertura no es prosa de más ni un incumplimiento del formato: es la traza que permite ver si aprobó porque no había nada o porque no llegó a mirar. Si un eje relevante para el paso aparece como `sin revisar:`, dilo al usuario al cerrar; no relances por ello.
 
-APROBADO_POR_EL_FEO
+**Para decidir qué ha respondido, aplica estas tres reglas en este orden y para en la primera que se cumpla:**
 
-continúa a Finalización. Esa línea de cobertura no es prosa de más ni un incumplimiento del formato: es la traza que permite ver si aprobó porque no había nada o porque no llegó a mirar. Si un eje relevante para el paso aparece como `sin revisar:`, dilo al usuario al cerrar; no relances por ello.
+1. **Si la respuesta contiene una cabecera `Informe de Desviaciones`, es un rechazo** — aunque termine con la línea de aprobación. `feo.md` le prohíbe emitir las dos cosas, así que un veredicto contradictorio es un fallo suyo, nunca un permiso para ignorar el informe. Trátalo como rechazo, corrige por el cauce de abajo, y dilo al usuario al cerrar el paso.
+2. **Si no hay informe y la última línea es exactamente `APROBADO_POR_EL_FEO`**, está aprobado: continúa a Finalización.
+3. **Si no hay ni informe ni token**, el veredicto no es válido: relanza sin consumir lanzamientos (ver el final de esta fase).
+
+Nunca decidas mirando solo la última línea. Es el error que este orden existe para evitar: un informe completo de desviaciones legítimas seguido del token se cerraría como aprobado y el paso quedaría con todo lo que El Feo encontró dentro.
+
+Junto a la aprobación puede llegar una sección `## Observaciones`: desviaciones ciertas cuya corrección se sale del plan. **No bloquean y no se corrigen dentro del paso.** Trátalas igual que las de El Malo: acumúlalas para enseñárselas al usuario al cerrar, y anótalas en `TECHNICAL_DEBT.md` —con fecha, paso y severidad— si señalan algo que alguien deba decidir. Si alguna implica que un paso posterior del plan ya no encaja, dilo al usuario antes de encadenar el siguiente.
 
 Si devuelve un Informe de Desviaciones:
 
@@ -347,13 +371,18 @@ y después
 En ese momento:
 
 1. Marca el checkbox de la unidad de trabajo completada en el plan y, si era el último subpaso sin marcar de su paso, marca también el del paso.
-2. Pasa todos los cambios al área de staging (`git add -A`), incluida la marca del checkbox.
-3. Aplica el `## Modo de ejecución` del plan. Salvo que allí diga otra cosa, se aplica **a cada unidad de trabajo**, subpasos incluidos: un subpaso aprobado cierra con su propio commit y su propio push, igual que un paso suelto. Solo si el modo pide expresamente agrupar por paso, los subpasos se quedan en staging y el commit espera al último de ellos.
+2. **Anota las desviaciones respecto al plan, si las hubo.** Si algo acabó distinto de lo que el plan decía —otra ruta, un fichero de más o de menos, una decisión que el plan no contemplaba, un consumidor que hubo que retirar—, escríbelo al final del plan, bajo una sección `## Desviaciones`, **una línea por desviación**: qué decía el plan, qué se hizo y por qué.
+
+   No es burocracia. Hoy esa información solo vive en el encargo de El Feo y en el mensaje del commit, así que desaparece en cuanto el plan se archiva junto a la especificación — y el plan archivado es el historial del proyecto. Además tiene un efecto inmediato: El Feo llega sin memoria a cada paso, así que una desviación sancionada en el paso 2 se la vuelve a encontrar en el diff del paso 5 y la reporta otra vez, quemando un lanzamiento. Escrita en el plan, la lee y no insiste.
+
+   Si no hubo desviaciones, no crees la sección.
+3. Pasa todos los cambios al área de staging (`git add -A`), incluida la marca del checkbox y la sección `## Desviaciones` si la has tocado.
+4. Aplica el `## Modo de ejecución` del plan. Salvo que allí diga otra cosa, se aplica **a cada unidad de trabajo**, subpasos incluidos: un subpaso aprobado cierra con su propio commit y su propio push, igual que un paso suelto. Solo si el modo pide expresamente agrupar por paso, los subpasos se quedan en staging y el commit espera al último de ellos.
    - **si pide commit**: commitea lo stageado con el formato anotado allí. El mensaje describe la unidad cerrada —el subpaso, si lo era—, no el patrón ni el paso padre.
    - **si además pide push**: empuja a la rama actual. Nunca `--force`, nunca cambies de rama, nunca crees una rama nueva por tu cuenta. Si el push falla —no hay remoto, upstream sin configurar, rechazo por divergencia—, no lo reintentes a ciegas: el commit ya está hecho, así que dilo con el error literal y continúa.
    - **si no pide nada**: deja los cambios en staging, sin commit.
-4. Muestra al usuario las observaciones acumuladas, si las hay. Las que sean fallos degradados por agotar lanzamientos ya están en `TECHNICAL_DEBT.md` (se anotaron al degradar); las observaciones voluntarias de El Malo —lo que reportó junto a su veredicto sin bloquear— añádelas también allí si señalan un comportamiento que alguien debería decidir si se corrige, y no si son meros comentarios.
-5. Declara: PASO COMPLETADO, diciendo en la misma línea qué unidad se ha cerrado —si era un subpaso, cuál y de qué paso— y qué se hizo con los cambios (commit y push, commit, o en staging).
+5. Muestra al usuario las observaciones acumuladas, si las hay. Las que sean fallos degradados por agotar lanzamientos ya están en `TECHNICAL_DEBT.md` (se anotaron al degradar); las observaciones voluntarias de El Malo y las de El Feo —lo que reportaron junto a su veredicto sin bloquear— añádelas también allí si señalan algo que alguien debería decidir si se corrige, y no si son meros comentarios. Di también, si se dio el caso, que la unidad acumuló tres familias distintas de fallo (ver «Cuántos lanzamientos»): es una señal sobre cómo está partido el plan, no sobre este paso.
+6. Declara: PASO COMPLETADO, diciendo en la misma línea qué unidad se ha cerrado —si era un subpaso, cuál y de qué paso— y qué se hizo con los cambios (commit y push, commit, o en staging).
 
 Después, para decidir si sigues:
 
