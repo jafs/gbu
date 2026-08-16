@@ -31,7 +31,9 @@ Por cada unidad de trabajo pendiente (paso o subpaso):
      │   formateo automático, recursos estéticos— y de esa clase
      │   salen qué verificadores ejecuta y qué fases entran)
      │
-  FASE 2 — El Malo (subagente) ataca los cambios: nulls, límites,
+  FASE 2 — El Malo (subagente, sin contexto de la sesión) lee el
+     │     plan —el paso, su criterio de aceptación y la sección
+     │     "Contexto"— y ataca los cambios: nulls, límites,
      │     datos corruptos, concurrencia... Sus tests quedan en la
      │     suite como regresión.
      │       ├─ SOBREVIVIO_AL_MALO → continúa
@@ -43,7 +45,8 @@ Por cada unidad de trabajo pendiente (paso o subpaso):
      │          como observaciones y el paso sigue, salvo que sea
      │          grave: entonces también se detiene y pregunta.
      │
-  FASE 3 — El Feo (subagente) audita contra el plan y las convenciones
+  FASE 3 — El Feo (subagente, sin contexto de la sesión) lee el
+     │     plan y audita el diff contra el paso y las convenciones
      │       ├─ APROBADO_POR_EL_FEO (con observaciones o sin ellas)
      │       │  → continúa
      │       └─ Informe de Desviaciones → El Bueno corrige y El Feo
@@ -68,7 +71,7 @@ Si El Feo rechaza el trabajo tres veces seguidas, o un paso del plan ya no encaj
 
 ## El plan y la memoria compartida
 
-**`PLAN.md` es el único artefacto compartido.** El Listo es el único que lee la documentación del proyecto (`CLAUDE.md`, README, acuerdos de equipo): sintetiza todo lo relevante en la sección "Contexto" del plan, y el resto de agentes trabajan exclusivamente con el plan y el código en disco. Menos relecturas, menos tokens, arranques en frío baratos. Con una consecuencia: **El Feo solo puede hacer valer lo que esté escrito ahí**, así que esa sección lleva las convenciones enunciadas como reglas comprobables leyendo, no como prosa.
+**`PLAN.md` es el único artefacto compartido.** El Listo es el único que lee la documentación del proyecto (`CLAUDE.md`, README, acuerdos de equipo): sintetiza todo lo relevante en la sección "Contexto" del plan, y el resto de agentes trabajan exclusivamente con el plan y el código en disco. Menos relecturas, menos tokens, arranques en frío baratos. Por eso Malo y Feo arrancan leyendo `PLAN.md`: de ahí sacan qué paso se acaba de implementar y su criterio de aceptación, y de la sección "Contexto" el framework de pruebas, el comando para ejecutarlo y las convenciones del proyecto. Con una consecuencia: **El Malo solo puede atacar con lo que el plan le cuenta y El Feo solo puede hacer valer lo que esté escrito ahí**, así que esa sección lleva las convenciones enunciadas como reglas comprobables leyendo, no como prosa.
 
 **El plan tiene que estar terminado, no solo escrito.** Cada paso lleva las rutas exactas que toca, el fichero existente al que debe parecerse y dónde vive su test. Sin eso, los otros tres roles investigan por separado lo mismo —y a veces con resultados distintos—, el paso se cierra desviándose del plan y la desviación acaba solo en el mensaje del commit. Por la misma razón El Listo se detiene ante una **incongruencia** del proyecto (dos formas de testear conviviendo, dos maneras de construir el mismo objeto, una convención documentada que el código incumple) en lugar de elegir en silencio: su elección se convierte en la regla que El Feo hará valer en cada paso, así que elegir mal significa dedicar el plan entero a reproducir con rigor el error que se quería dejar atrás. Un hueco se resuelve con el supuesto más simple; una contradicción, preguntando.
 

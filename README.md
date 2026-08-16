@@ -29,9 +29,9 @@ flowchart TD
     M --> Q{"¿Queda alguna<br/>unidad de trabajo<br/>sin marcar?"}
     Q -- "No" --> FIN(["✅ COMPLETADO CON ÉXITO"])
     Q -- "Sí" --> B["🤠 El Bueno<br/>implementa y deja<br/>la suite en verde"]
-    B --> A["🌵 El Malo — subagente aislado<br/>ataca los cambios"]
+    B --> A["🌵 El Malo — subagente aislado<br/>lee PLAN.md y ataca los cambios"]
     A -- "Informe de fallos<br/>(3 lanzamientos, 4 si son productivos)" --> B
-    A -- "SOBREVIVIO_AL_MALO" --> F["👺 El Feo — subagente aislado<br/>audita plan y convenciones"]
+    A -- "SOBREVIVIO_AL_MALO" --> F["👺 El Feo — subagente aislado<br/>lee PLAN.md y audita el diff<br/>contra el paso y las convenciones"]
     F -- "Informe de Desviaciones<br/>(máx. 3 lanzamientos)" --> B
     F -- "APROBADO_POR_EL_FEO" --> C["Cierre del paso<br/>checkbox marcado, git add -A<br/>y Modo de ejecución"]
     C --> Q
