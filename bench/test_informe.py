@@ -166,10 +166,32 @@ class TestJson(unittest.TestCase):
     def test_la_serie_trae_un_punto_por_turno_y_en_orden(self):
         datos = json.loads(a_json(_informe_de_prueba()))
 
-        serie = datos["sesiones"][0]["serie"]["sheriff"]
-        self.assertEqual(len(serie), 2)
-        self.assertEqual([p["turno"] for p in serie], sorted(p["turno"] for p in serie))
-        self.assertEqual(serie[0]["modelo"], "claude-opus-5")
+        serie = next(s for s in datos["sesiones"][0]["serie"] if s["rol"] == "sheriff")
+        puntos = serie["puntos"]
+        self.assertEqual(len(puntos), 2)
+        self.assertEqual([p["turno"] for p in puntos], sorted(p["turno"] for p in puntos))
+        self.assertEqual(puntos[0]["modelo"], "claude-opus-5")
+
+    def test_la_serie_lleva_una_entrada_por_conversacion(self):
+        # Dos Malos en la misma sesión son dos entradas: una sola contaría
+        # una historia falsa en la línea de tiempo.
+        clasificada = _clasificada()
+        participantes = [
+            Participante("sheriff", conversacion_desde_eventos([_turno(identificador="s1")])),
+            Participante("malo", conversacion_desde_eventos([_turno(identificador="b1")])),
+            Participante("malo", conversacion_desde_eventos([_turno(identificador="b2")])),
+        ]
+        analisis, _ = analizar_sesion(clasificada, participantes)
+        informe = componer(
+            proyecto="x",
+            seleccion=_Seleccion(incluidas=(clasificada,)),
+            analisis=[analisis],
+            hallazgos=[],
+        )
+
+        serie = json.loads(a_json(informe))["sesiones"][0]["serie"]
+
+        self.assertEqual([s["rol"] for s in serie], ["sheriff", "malo", "malo"])
 
     def test_el_pensamiento_va_en_las_metricas(self):
         datos = json.loads(a_json(_informe_de_prueba()))

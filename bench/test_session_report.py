@@ -113,6 +113,24 @@ class TestLineaDeComandos(unittest.TestCase):
         self.assertTrue((self.archivo / "kdserver" / "0.1.0-2.json").exists())
         self.assertIn("el anterior se conserva", salida)
 
+    def test_escribe_la_pagina_html_si_se_pide(self):
+        self._sesion("aaa")
+
+        codigo, salida = self._informe("--html")
+
+        pagina = self.archivo / "kdserver" / "0.1.0.html"
+        self.assertEqual(codigo, 0)
+        self.assertTrue(pagina.exists())
+        self.assertIn("Página HTML en", salida)
+        self.assertTrue(pagina.read_text(encoding="utf-8").startswith("<!doctype html>"))
+
+    def test_sin_html_no_escribe_pagina(self):
+        self._sesion("aaa")
+
+        self._informe()
+
+        self.assertFalse((self.archivo / "kdserver" / "0.1.0.html").exists())
+
     def test_filtra_por_version(self):
         self._sesion("aaa", version="0.1.0")
         self._sesion("bbb", version="0.2.0")
@@ -229,6 +247,16 @@ class TestModoComparar(unittest.TestCase):
         self.assertIn("0.1.0.json", salida)
         self.assertIn("0.2.0.json", salida)
         self.assertIn("Resueltos", salida)
+
+    def test_la_comparacion_tambien_puede_dar_pagina(self):
+        self._archivar("0.1.0")
+        self._archivar("0.2.0")
+
+        codigo, salida = self._ejecutar("--html")
+
+        self.assertEqual(codigo, 0)
+        self.assertTrue((self.directorio / "0.2.0-vs-0.1.0.html").exists())
+        self.assertIn("Página HTML en", salida)
 
     def test_compara_dos_versiones_no_consecutivas_pedidas_a_mano(self):
         self._archivar("0.1.0")

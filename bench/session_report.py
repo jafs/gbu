@@ -35,6 +35,7 @@ from eventos import cargar_conversacion, parsear_instante
 from informe import a_json, a_markdown, analizar_sesion, componer
 from localizador import localizar_sesiones
 from metricas_coste import SHERIFF, Participante, coste
+from pagina import generar as generar_pagina
 from seleccion import (
     clasificar,
     fecha_de_commit,
@@ -91,6 +92,9 @@ def _parsear(argv):
         metavar=("PROYECTO", "BASE NUEVA"),
         help="compara dos informes archivados de un proyecto",
     )
+    analizador.add_argument(
+        "--html", action="store_true", help="escribe además la página HTML"
+    )
     analizador.add_argument("--archivo", help="raíz del archivo de informes")
     analizador.add_argument("--transcripts", help="raíz de los transcripts de Claude Code")
     argumentos = analizador.parse_args(argv)
@@ -138,6 +142,10 @@ def _modo_informe(argumentos, salida, ejecutar=None):
         ventana={"desde": _texto(desde), "hasta": _texto(hasta)},
     )
     destino = _archivar(informe, proyecto, argumentos, salida)
+    if argumentos.html:
+        pagina = destino.with_suffix(".html")
+        pagina.write_text(generar_pagina(json.loads(a_json(informe))), encoding="utf-8")
+        print(f"Página HTML en {pagina}", file=salida)
     _resumir(informe, destino, salida)
 
 
@@ -159,9 +167,19 @@ def _modo_comparar(argumentos, salida):
     else:
         base, nueva = _dos_mas_recientes(directorio)
 
-    comparacion = comparar(_leer_json(base), _leer_json(nueva))
+    referencia = _leer_json(base)
+    reciente = _leer_json(nueva)
+    comparacion = comparar(referencia, reciente)
     print(f"Base:  {base}", file=salida)
     print(f"Nueva: {nueva}", file=salida)
+    if argumentos.html:
+        # La página va junto al informe nuevo, que es el que describe.
+        pagina = nueva.with_name(f"{nueva.stem}-vs-{base.stem}.html")
+        pagina.write_text(
+            generar_pagina(reciente, comparacion=comparacion, referencia=referencia),
+            encoding="utf-8",
+        )
+        print(f"Página HTML en {pagina}", file=salida)
     print(file=salida)
     print(comparacion_a_markdown(comparacion), file=salida)
 

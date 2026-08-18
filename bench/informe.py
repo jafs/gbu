@@ -64,6 +64,10 @@ class SesionAnalizada:
     curvas: dict = field(default_factory=dict)
     preludes: dict = field(default_factory=dict)
     turn_tokens: dict = field(default_factory=dict)
+    # Una entrada por conversación, no por rol: una sesión lanza varios
+    # Malos y varios Feos, y una línea de tiempo que solo enseñara uno de
+    # ellos contaría una historia falsa.
+    series: tuple = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -131,9 +135,11 @@ def analizar_sesion(clasificada, participantes, umbrales=None):
     curvas = {}
     preludes = {}
     turn_tokens = {}
+    series = []
     for participante in participantes:
         rol = participante.rol
         curva = curva_de_contexto(participante.conversacion)
+        series.append((rol, curva))
         # Del mismo rol puede haber varias conversaciones: se guarda la más
         # larga, que es la que manda al hablar de contextos desbocados.
         if rol not in curvas or len(curva.puntos) > len(curvas[rol].puntos):
@@ -152,6 +158,7 @@ def analizar_sesion(clasificada, participantes, umbrales=None):
         curvas=curvas,
         preludes=preludes,
         turn_tokens=turn_tokens,
+        series=tuple(series),
     )
     return analisis, detectar(vistas, umbrales)
 
@@ -248,20 +255,24 @@ def _sesion(sesion, pesos):
             for rol, curva in sesion.curvas.items()
         },
         # La serie es lo que permite dibujar después una línea de tiempo sin
-        # volver a los transcripts.
-        "serie": {
-            rol: [
-                {
-                    "turno": punto.turno,
-                    "instante": _instante(punto.instante),
-                    "contexto": punto.contexto,
-                    "salida": punto.salida,
-                    "modelo": punto.modelo,
-                }
-                for punto in curva.puntos
-            ]
-            for rol, curva in sesion.curvas.items()
-        },
+        # volver a los transcripts. Va una entrada por conversación, no por
+        # rol: los subagentes se lanzan varias veces por sesión.
+        "serie": [
+            {
+                "rol": rol,
+                "puntos": [
+                    {
+                        "turno": punto.turno,
+                        "instante": _instante(punto.instante),
+                        "contexto": punto.contexto,
+                        "salida": punto.salida,
+                        "modelo": punto.modelo,
+                    }
+                    for punto in curva.puntos
+                ],
+            }
+            for rol, curva in sesion.series
+        ],
     }
 
 
