@@ -1,6 +1,3 @@
-# Casos de uso privados / adaptaciones locales del patrón (contiene su propio repo git)
-custom/
-
 # Artefactos de Python de los ejemplos
 __pycache__/
 

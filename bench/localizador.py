@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from eventos import parsear_instante
+
 # Claude Code codifica la ruta del proyecto sustituyendo por un guion todo
 # carácter que no sea alfanumérico, incluidos el separador, los dos puntos
 # de la unidad, los puntos y los guiones bajos. La codificación es lo
@@ -190,20 +192,4 @@ def _instante_de_linea(linea):
         return None
     if not isinstance(evento, dict):
         return None
-    return _parsear_instante(evento.get("timestamp"))
-
-
-def _parsear_instante(texto):
-    """Convierte un timestamp ISO 8601 en datetime.
-
-    Los transcripts usan la `Z` de UTC, que `fromisoformat` no admite hasta
-    Python 3.11; se traduce a su desplazamiento explícito.
-    """
-    if not isinstance(texto, str):
-        return None
-    if texto.endswith("Z"):
-        texto = texto[:-1] + "+00:00"
-    try:
-        return datetime.fromisoformat(texto)
-    except ValueError:
-        return None
+    return parsear_instante(evento.get("timestamp"))
