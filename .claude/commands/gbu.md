@@ -13,6 +13,8 @@ El Listo y El Bueno son roles que adoptas tú, con todo el contexto de la sesió
 
 Anuncia cada fase indicando el rol que entra y, al terminar, resume su resultado en una línea. No copies informes íntegros en la conversación.
 
+Antes de la primera fase, anuncia en una línea suelta la versión del patrón: `gbu v0.1.0`. Es la marca que permite saber después, leyendo la traza de la sesión, con qué versión se ejecutó.
+
 # Argumentos
 
 Si se han proporcionado argumentos ($ARGUMENTS), interprétalos así:

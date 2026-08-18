@@ -49,7 +49,26 @@ El detalle fase a fase está en [`DESIGN.md`](DESIGN.md).
 
 ## Instalación
 
-Copia los dos directorios en la raíz de tu proyecto:
+La forma recomendada es instalarlo como plugin de Claude Code, para no arrastrar copias del patrón por cada proyecto. Desde el proyecto donde lo quieras usar:
+
+```text
+/plugin marketplace add https://github.com/jafs/gbu
+/plugin install gbu@gbu
+```
+
+Los comandos quedan disponibles con el prefijo del plugin — `/gbu:gbu`, `/gbu:listo`, `/gbu:bueno`, `/gbu:malo`, `/gbu:feo` — y los subagentes aislados se registran solos. Si tenías una copia manual del patrón en `.claude/`, bórrala tras instalar el plugin o convivirán dos versiones.
+
+Para actualizar a la última versión publicada:
+
+```text
+/plugin update gbu
+```
+
+El cambio se aplica al reiniciar Claude Code. `/plugin list` te dice qué versión tienes instalada en ese proyecto, y cada ejecución de `/gbu:gbu` anuncia su versión al arrancar, así que la traza de la sesión deja constancia de con qué versión se trabajó.
+
+### Alternativa: copia manual
+
+Si prefieres no usar el sistema de plugins, o quieres tocar los prompts para ese proyecto en concreto, copia los dos directorios en la raíz:
 
 ```text
 tu-proyecto/
@@ -58,7 +77,11 @@ tu-proyecto/
     └── agents/        # feo.md, malo.md  (los subagentes aislados)
 ```
 
-No hay nada que compilar ni configurar: son ficheros markdown que Claude Code carga automáticamente como comandos slash y subagentes.
+Así los comandos van sin prefijo (`/gbu`, `/listo`...), pero cada actualización del patrón hay que replicarla a mano.
+
+No hay nada que compilar ni configurar en ninguno de los dos casos: son ficheros markdown que Claude Code carga automáticamente como comandos slash y subagentes.
+
+> Si vas a publicar cambios del patrón, el checklist de release está en [`RELEASING.md`](RELEASING.md).
 
 ## Uso
 

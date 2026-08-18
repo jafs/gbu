@@ -1,0 +1,15 @@
+{
+  "name": "gbu",
+  "owner": {
+    "name": "José Antonio Fuentes Santiago",
+    "email": "developer@jafs.es"
+  },
+  "plugins": [
+    {
+      "name": "gbu",
+      "source": "./",
+      "description": "El patrón GBU: Listo planifica, Bueno implementa, Malo rompe y Feo audita, paso a paso."
+    }
+  ],
+  "description": "Marketplace del patrón GBU."
+}
