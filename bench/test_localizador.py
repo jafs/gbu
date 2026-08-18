@@ -55,6 +55,25 @@ class TestLocalizarSesiones(unittest.TestCase):
         )
         return fichero
 
+    def test_modelo_declarado_del_subagente(self):
+        self._escribir_sesion("mmm", ["2026-08-16T13:45:36.000Z"])
+        directorio = self._escribir_subagente("mmm", "0055", "malo")
+        (directorio / "agent-0055.meta.json").write_text(
+            json.dumps({"agentType": "malo", "model": "opus"}), encoding="utf-8"
+        )
+
+        (sesion,) = localizar_sesiones(self.proyecto, self.raiz)
+
+        self.assertEqual(sesion.subagentes[0].modelo, "opus")
+
+    def test_subagente_sin_modelo_declarado(self):
+        self._escribir_sesion("nnn", ["2026-08-16T13:45:36.000Z"])
+        self._escribir_subagente("nnn", "0066", "feo")
+
+        (sesion,) = localizar_sesiones(self.proyecto, self.raiz)
+
+        self.assertIsNone(sesion.subagentes[0].modelo)
+
     def _escribir_subagente(self, sesion, identificador, tipo):
         directorio = self.transcripts / sesion / "subagents"
         directorio.mkdir(parents=True, exist_ok=True)

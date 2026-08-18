@@ -41,6 +41,7 @@ class Subagente:
     tipo_agente: str | None
     fichero: Path
     tamano: int
+    modelo: str | None = None
 
 
 @dataclass(frozen=True)
@@ -135,27 +136,35 @@ def _describir_subagente(fichero):
     identificador = fichero.stem
     if identificador.startswith(_PREFIJO_SUBAGENTE):
         identificador = identificador[len(_PREFIJO_SUBAGENTE):]
+    tipo, modelo = _metadatos(fichero.with_suffix(".meta.json"))
     return Subagente(
         identificador=identificador,
-        tipo_agente=_tipo_de_agente(fichero.with_suffix(".meta.json")),
+        tipo_agente=tipo,
         fichero=fichero,
         tamano=fichero.stat().st_size,
+        modelo=modelo,
     )
 
 
-def _tipo_de_agente(meta):
-    """Lee el `agentType` del `.meta.json` de un subagente.
+def _metadatos(meta):
+    """Lee el `agentType` y el `model` del `.meta.json` de un subagente.
 
-    Devuelve None si el fichero no está o no se deja leer: un subagente sin
-    tipo sigue siendo un subagente y su coste cuenta igual, así que no se
-    descarta por esto.
+    Devuelve None en lo que falte si el fichero no está o no se deja leer:
+    un subagente sin tipo sigue siendo un subagente y su coste cuenta
+    igual, así que no se descarta por esto. El modelo declarado aquí es
+    solo un respaldo; el que manda es el que declare cada turno.
     """
     try:
         datos = json.loads(meta.read_text(encoding="utf-8", errors="replace"))
     except (OSError, ValueError):
-        return None
-    tipo = datos.get("agentType") if isinstance(datos, dict) else None
-    return tipo if isinstance(tipo, str) else None
+        return None, None
+    if not isinstance(datos, dict):
+        return None, None
+    return _texto(datos.get("agentType")), _texto(datos.get("model"))
+
+
+def _texto(valor):
+    return valor if isinstance(valor, str) else None
 
 
 def _extremos_temporales(fichero):
