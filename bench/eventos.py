@@ -72,6 +72,7 @@ class Bloque:
     texto: str = ""
     nombre: str | None = None
     identificador: str | None = None
+    identificacion: str | None = None
     es_error: bool = False
 
     @property
@@ -334,6 +335,7 @@ def _bloque(bruto):
             texto=_texto_libre(bruto.get("input")),
             nombre=_cadena(bruto.get("name")),
             identificador=_cadena(bruto.get("id")),
+            identificacion=_identificacion(bruto.get("input")),
         )
     if tipo == "tool_result":
         return Bloque(
@@ -342,6 +344,35 @@ def _bloque(bruto):
             identificador=_cadena(bruto.get("tool_use_id")),
             es_error=bool(bruto.get("is_error")),
         )
+    return None
+
+
+# Argumentos que dicen sobre qué actuó una llamada, en orden de
+# preferencia. Es lo que permite reconocer que dos llamadas distintas
+# tocaron el mismo fichero o repitieron el mismo comando.
+_ARGUMENTOS_IDENTIFICATIVOS = (
+    "file_path",
+    "notebook_path",
+    "path",
+    "command",
+    "pattern",
+    "url",
+    "skill",
+)
+
+
+def _identificacion(entrada):
+    """Extrae de la entrada de una llamada el dato que la identifica.
+
+    Devuelve None si la llamada no actúa sobre nada nombrable, como un
+    subagente lanzado con un prompt libre: ahí no hay objeto que comparar.
+    """
+    if not isinstance(entrada, dict):
+        return None
+    for clave in _ARGUMENTOS_IDENTIFICATIVOS:
+        valor = entrada.get(clave)
+        if isinstance(valor, str) and valor:
+            return valor
     return None
 
 
@@ -354,6 +385,7 @@ def _bloque_de_adjunto(adjunto):
         # varían según el subtipo y no hay uno solo que sea "el contenido".
         texto=_texto_libre(adjunto),
         nombre=_cadena(adjunto.get("type")),
+        identificacion=_cadena(adjunto.get("filename")),
     )
 
 
