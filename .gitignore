@@ -5,3 +5,6 @@ custom/
 __pycache__/
 
 MIGRATION.md
+
+# Planes de trabajo de este repositorio: son notas de proceso, no parte del patrón
+PLAN*.md
