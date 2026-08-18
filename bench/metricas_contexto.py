@@ -69,6 +69,8 @@ class BloqueCaro:
     turno: int
     tokens: int
     lecturas: int
+    identificador: str | None = None
+    resumen: str = ""
 
     @property
     def turn_tokens(self):
@@ -140,6 +142,8 @@ def bloques_con_lecturas(conversacion):
                     turno=turno.indice,
                     tokens=bloque.tokens,
                     lecturas=_lecturas(indices, turno.indice, propio),
+                    identificador=bloque.identificador,
+                    resumen=_resumen(bloque.texto),
                 )
             )
     return tuple(caros)
@@ -170,6 +174,17 @@ def texto_del_contexto(conversacion):
     Es el contrapeso del prelude: lo que sí se ve en el transcript.
     """
     return sum(t.tokens_estimados for t in conversacion.turnos)
+
+
+def _resumen(texto, limite=60):
+    """Primeras palabras de un bloque, para poder nombrarlo en un informe.
+
+    Un bloque de texto no tiene ruta ni comando que lo identifique, y sin
+    algo que lo nombre los hallazgos que lo señalan no son accionables:
+    saber que "un texto" costó medio millón de turn-tokens no dice cuál.
+    """
+    limpio = " ".join((texto or "").split())
+    return limpio if len(limpio) <= limite else limpio[: limite - 1] + "…"
 
 
 def _lecturas(indices_de_asistente, indice, es_del_asistente):
