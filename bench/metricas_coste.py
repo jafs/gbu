@@ -47,6 +47,7 @@ class Agregado:
     creacion_cache: int = 0
     lectura_cache: int = 0
     salida: int = 0
+    pensamiento: int = 0
     turnos_sin_uso: int = 0
 
     @property
@@ -68,6 +69,7 @@ class Agregado:
             creacion_cache=self.creacion_cache + otro.creacion_cache,
             lectura_cache=self.lectura_cache + otro.lectura_cache,
             salida=self.salida + otro.salida,
+            pensamiento=self.pensamiento + otro.pensamiento,
             turnos_sin_uso=self.turnos_sin_uso + otro.turnos_sin_uso,
         )
 
@@ -214,4 +216,5 @@ def _agregado_de_turno(turno):
         creacion_cache=turno.uso.creacion_cache,
         lectura_cache=turno.uso.lectura_cache,
         salida=turno.uso.salida,
+        pensamiento=turno.uso.pensamiento,
     )

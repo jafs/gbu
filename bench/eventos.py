@@ -52,6 +52,7 @@ class Uso:
     creacion_cache: int = 0
     lectura_cache: int = 0
     salida: int = 0
+    pensamiento: int = 0
 
     @property
     def contexto(self):
@@ -300,6 +301,14 @@ def _uso(datos):
         creacion_cache=_entero(datos.get("cache_creation_input_tokens")),
         lectura_cache=_entero(datos.get("cache_read_input_tokens")),
         salida=_entero(datos.get("output_tokens")),
+        # El pensamiento llega al transcript con el texto vacío y solo la
+        # firma, así que no hay forma de medirlo por contenido. El único
+        # sitio donde consta es aquí, dentro de la salida.
+        pensamiento=_entero(
+            (datos.get("output_tokens_details") or {}).get("thinking_tokens")
+            if isinstance(datos.get("output_tokens_details"), dict)
+            else 0
+        ),
     )
 
 
