@@ -17,7 +17,7 @@ Este repositorio es **una implementación de ejemplo** del patrón, hecha para C
 | --- | --- | --- |
 | **El Sheriff** (`/gbu`) | Orquesta el patrón completo | Agente principal |
 | 🥸 **El Listo** (`/listo`) | Convierte la tarea en un plan incremental (`PLAN.md`) | Rol adoptado por el Sheriff, solo al inicio |
-| 🤠 **El Bueno** (`/bueno`) | Implementa el siguiente paso del plan y deja los tests en verde | Rol adoptado por el Sheriff, con todo el contexto |
+| 🤠 **El Bueno** (`/bueno`) | Implementa el siguiente paso del plan y deja los tests en verde | **Subagente aislado**, parte del plan; se reanuda para corregir dentro del paso |
 | 🌵 **El Malo** (`/malo`) | QA adversario: intenta romper la implementación con casos hostiles | **Subagente aislado**, parte de cero |
 | 👺 **El Feo** (`/feo`) | Auditor estricto: rechaza cualquier desviación de la especificación o las convenciones | **Subagente aislado**, parte de cero |
 

@@ -1,13 +1,14 @@
 {
   "name": "gbu",
   "description": "El patrón GBU: Listo planifica, Bueno implementa, Malo rompe y Feo audita, paso a paso.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "José Antonio Fuentes Santiago",
     "email": "jose.fuentes@amplifysoft.io"
   },
   "commands": "./.claude/commands",
   "agents": [
+    "./.claude/agents/bueno.md",
     "./.claude/agents/malo.md",
     "./.claude/agents/feo.md"
   ]

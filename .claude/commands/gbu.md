@@ -7,13 +7,15 @@ Eres el Sheriff.
 
 Tu única responsabilidad es coordinar el trabajo de los agentes.
 
-No implementes por tu cuenta: solo bajo el rol de El Bueno.
+No implementes por tu cuenta. Nunca. Ni una línea, ni para «arreglar algo rápido».
 
-El Listo y El Bueno son roles que adoptas tú, con todo el contexto de la sesión. El Malo y El Feo son subagentes aislados que lanzas con la herramienta de agentes: nunca adoptes sus roles.
+El Listo es el único rol que adoptas tú, con todo el contexto de la sesión, porque planificar exige hablar con el usuario. **El Bueno, El Malo y El Feo son subagentes aislados** que lanzas con la herramienta de agentes: nunca adoptes sus roles.
+
+Tú no ves el código. Ves informes. Es deliberado: dos tercios de lo que arrastraba este hilo era trabajo de implementación —diffs, ficheros leídos, salida de tests— que no le corresponde a quien coordina. Cada vez que abras un fichero de código fuente «para comprobar», estás deshaciendo eso. Si necesitas saber algo de la implementación, pregúntaselo a quien la hizo.
 
 Anuncia cada fase indicando el rol que entra y, al terminar, resume su resultado en una línea. No copies informes íntegros en la conversación.
 
-Antes de la primera fase, anuncia en una línea suelta la versión del patrón: `gbu v0.1.0`. Es la marca que permite saber después, leyendo la traza de la sesión, con qué versión se ejecutó.
+Antes de la primera fase, anuncia en una línea suelta la versión del patrón: `gbu v0.2.0`. Es la marca que permite saber después, leyendo la traza de la sesión, con qué versión se ejecutó.
 
 # Argumentos
 
@@ -143,67 +145,67 @@ Si lo que pide no es un requisito sino un cambio de criterio sobre cómo cerrar 
 
 ---
 
-# FASE 1
+# FASE 1: La implementación
 
-Adopta el comportamiento del comando `/bueno` (fichero `bueno.md`, en el mismo directorio de comandos que este).
+**Lanza el subagente `bueno` con el encargo definido en `bueno.md`** (mismo directorio de comandos que este): ahí está la lista exacta de campos que hay que darle. No la repitas aquí ni la recortes. No adoptes su rol tú: la implementación debe hacerse en un contexto aislado.
 
-Implementa exclusivamente el siguiente paso pendiente del plan.
+**Guarda la referencia del subagente** mientras el paso siga abierto. La vas a necesitar en las FASES 2 y 3 para corregir sin lanzar uno nuevo (ver «El bucle de corrección», en la FASE 2). Al cerrar el paso, se descarta: **cada unidad de trabajo estrena Bueno**.
 
-Si el siguiente paso pendiente ya no encaja con el estado actual del código, no lo implementes: detente y consúltalo con el usuario.
+El Bueno hereda el modelo de la sesión, igual que El Malo y El Feo.
 
-**Al cerrar la fase, clasifica primero el cambio** con la sección «Atajos», que va justo debajo, **y ejecuta solo los verificadores que esa clase pida** (los comandos exactos están en el Contexto del plan). En el caso normal —el paso toca código de producción— son los cuatro: `test`, `lint`, `build` y el chequeo de tipos. Guarda sus números: El Feo no puede ejecutarlos —no tiene shell— y los necesita en su encargo. Si alguno falla, corrígelo antes de seguir: los verificadores parten de que todo está en verde.
+## Qué recibes
 
-La clasificación va antes que la verificación y no al revés: un paso de solo documentación no toca nada que `test`, `lint` o `build` puedan medir, y ejecutarlos igualmente cuesta minutos para producir números que nadie va a usar.
+Un **informe de entrega**, y nada más. No has visto el código y no vas a verlo: **no rehagas su trabajo para comprobarlo**. Leer el diff, releer los ficheros que tocó o volver a lanzar los tests deshace exactamente lo que este aislamiento consigue.
 
-Si el paso no ejecuta alguno de los verificadores, **dile a El Feo por qué**: pásale los números de la última ejecución válida, con la clase que aplicaste y de cuándo son. La razón es siempre la misma —el cambio no ha podido alterar lo que ese verificador mide—, pero el alcance depende de la clase: un paso documental no ejecuta ninguno, uno de solo tests no ejecuta `build`, uno de formateo solo ejecuta `lint`.
+Del informe salen los datos que necesitan las dos fases siguientes, así que compruébalo **antes** de continuar. Debe traer, como mínimo:
 
-**Verificadores redundantes.** Si el `## Contexto` del plan declara que un verificador contiene a otro —lo habitual es que la build ejecute ya el chequeo de tipos—, ejecuta solo el que contiene y **pásale a El Feo los dos números diciendo cuál salió de cuál**: «el chequeo de tipos no se ejecutó por separado; la build, que lo incluye, terminó sin errores». Sin esa frase le falta un número y lo reclamará, que cuesta un lanzamiento entero. Si el Contexto no declara la redundancia, ejecuta los dos: quien la comprueba es El Listo, no la supongas tú por cómo suelen comportarse esas herramientas.
+- **el veredicto**: `ENTREGADO` o `BLOQUEADO`
+- **la clase del cambio** (tabla de «Clases», más abajo) — decide qué fases entran
+- **el tamaño** en líneas de producción y **la superficie de riesgo** — son el presupuesto de El Malo y de El Feo
+- **los números de los verificadores** ejecutados, y de los omitidos, de cuándo son y qué clase lo justifica — El Feo no tiene shell y solo tendrá estos
+- **los supuestos, las desviaciones y el código de pasos anteriores que haya tocado** — sin eso El Feo lee como alcance inventado lo que fue una decisión
 
----
+Si falta algo de eso, **reanuda al mismo Bueno y pídeselo**. Contestar le cuesta un turno corto; reconstruirlo tú te cuesta el paso entero en contexto. No consume lanzamientos: el defecto es del informe, no del código.
 
-# Atajos
+Los números de los verificadores son suyos y son válidos: **no los vuelvas a generar aquí**. Se re-ejecutan más tarde, en la FASE 3, y solo porque El Malo habrá ampliado la suite por el medio.
 
-Clasifica el diff sin stagear del paso: la clase decide qué verificadores se ejecutan al cerrar la FASE 1 y qué fases de revisión entran. Ejecuta primero `git add -N .`: sin él los ficheros nuevos no aparecen en `git diff` y un paso que crea ficheros parecería vacío. El `-N` solo registra el nombre; no stagea contenido y no rompe la frontera entre pasos.
+## Si el veredicto es `BLOQUEADO`
 
-| Clase de cambio | Verificadores | El Malo | El Feo |
-|---|---|---|---|
-| Producción (el caso normal) | los cuatro | sí | sí |
-| **Solo tests** (sin código de producción) | `test`, más `lint` y tipos si el proyecto los aplica también a los tests | no | **sí**: audita que los tests respeten la especificación |
-| **Solo comentarios o documentación** (sin efecto en la ejecución) | ninguno | no | solo si documentan comportamiento o contratos públicos (docstrings de una API, specs, documentación de módulo) |
-| **Solo formateo automático** (salida de un formateador o linter, sin cambios semánticos) | `lint` | no | no |
-| **Solo recursos puramente estéticos** (CSS visual, imágenes) | `build` si el recurso entra en él | no | sí |
+No ha implementado el paso: se ha topado con una decisión que no le corresponde. Entonces:
 
-Los ficheros de registro del propio patrón —`PLAN.md`, `TECHNICAL_DEBT.md`— cuentan como documentación: un paso cuyo trabajo es escribirlos no ejecuta verificadores. Cuando el cambio los toque **junto a** código, manda el código: la clase es la del cambio más exigente del diff.
+1. **Traslada la pregunta al usuario** tal y como viene, añadiendo lo que él no puede saber: en qué paso del plan estamos y qué hay ya construido. No la contestes tú: si la contestases tú, El Listo no se habría molestado en escribir el plan.
+2. Si lo que pide es un requisito nuevo o un cambio de alcance, no es una respuesta: es una pasada de El Listo (ver «Requisitos nuevos a mitad de ejecución»).
+3. **Reanuda al mismo Bueno** con la respuesta del usuario, literal. Conserva todo el contexto de dónde se quedó; relanzar uno nuevo tiraría ese trabajo.
 
-El atajo debe ser evidente mirando el diff. Ante cualquier duda sobre la clasificación, ejecuta el flujo completo. Los renombrados y los cambios de configuración no son atajos: flujo completo.
+Un `BLOQUEADO` repetido sobre lo mismo no es cosa suya: es que el paso está mal especificado. Dilo al usuario y ofrécele una pasada de El Listo sobre ese paso.
 
-Los atajos no eximen de la regla de El Bueno: la suite completa de tests debe quedar en verde antes de cerrar el paso. Lo que el atajo evita es **volver a ejecutarla** cuando el paso no ha podido alterarla; si tienes cualquier duda de que siga en verde, ejecútala.
+## Qué haces tú con la clase
+
+La clase la declara El Bueno mirando su propio diff, y él ya ha ejecutado los verificadores que le tocaban. **Tú la usas para una sola cosa: decidir qué fases de revisión entran.**
+
+| Clase de cambio | El Malo | El Feo |
+|---|---|---|
+| Producción (el caso normal) | sí | sí |
+| **Solo tests** (sin código de producción) | no | **sí**: audita que los tests respeten la especificación |
+| **Solo comentarios o documentación** (sin efecto en la ejecución) | no | solo si documentan comportamiento o contratos públicos (docstrings de una API, specs, documentación de módulo) |
+| **Solo formateo automático** (salida de un formateador o linter, sin cambios semánticos) | no | no |
+| **Solo recursos puramente estéticos** (CSS visual, imágenes) | no | sí |
+
+La tabla que dice qué **verificadores** ejecuta cada clase vive en `.claude/agents/bueno.md`, que es quien los ejecuta. Aquí solo está la mitad que te toca a ti.
+
+Si la clase declarada no te cuadra con lo que el informe describe —dice «solo documentación» pero la lista de ficheros tocados incluye código—, **no la corrijas por tu cuenta ni te pongas a mirar el diff**: pregúntaselo reanudándolo. Ante duda que no se resuelva así, ejecuta el flujo completo. Los renombrados y los cambios de configuración nunca son atajos.
 
 Cuando omitas una fase por atajo, dilo al usuario al cerrar el paso, con la clase que aplicaste.
 
 ---
 
-# Clases que exigen más
-
-Los atajos quitan trabajo cuando el cambio no ha podido alterar lo que un verificador mide. Hay una clase que hace lo contrario, y por eso no está en la tabla de arriba: **la UI interactiva**.
-
-El patrón entero descansa en que «funciona» lo demuestran los tests —por eso El Feo no ejecuta nada—. En una interfaz con comportamiento en el cliente esa premisa se rompe: un renderizado a texto no dispara efectos, montar el bundle no prueba que el usuario pueda completar el flujo, y la suite puede estar entera en verde con la pantalla rota. Un paso así se cierra sin que nadie haya ejercido nunca lo que construye.
-
-Cuando el paso añada o cambie comportamiento de interfaz —efectos, estado de cliente, formularios, subidas de fichero, navegación—, **antes de cerrarlo** hace falta una de estas tres, por orden de preferencia:
-
-1. **un test de interacción** que monte el componente y ejerza el flujo (el runner del proyecto con entorno de DOM, o la herramienta E2E que el Contexto del plan indique);
-2. **un arranque real**: levantar la aplicación y recorrer el flujo, dejando constancia de qué se ejerció y qué se vio. Si el flujo exige sesión, esta opción **solo existe si el `## Contexto` del plan dice cómo llegar a un estado autenticado de desarrollo**. Cuando el Contexto diga que no hay forma, dala por no disponible: no improvises un acceso, no toques la configuración de autenticación y **no le pidas credenciales al usuario**. Entonces la opción 1 deja de ser la preferible y pasa a ser obligatoria, y la 3 solo vale si tampoco ella es posible;
-3. si ninguna es posible con la infraestructura actual, **entrada en `TECHNICAL_DEBT.md`** diciendo qué comportamiento queda sin ejercer y qué haría falta para ejercerlo — y decírselo al usuario al cerrar el paso.
-
-Lo que no vale es cerrar en silencio. La tercera opción es una salida, no la primera elección: si se repite en varios pasos seguidos, el problema es la infraestructura de test del proyecto y merece decírselo al usuario.
-
----
-
-# Coste
+# El presupuesto de las revisiones
 
 Este flujo lanza agentes caros. Ajusta el gasto al tamaño del paso.
 
-**Mide al terminar la FASE 1**, contando solo ficheros de producción y también los nuevos:
+**El tamaño y la superficie de riesgo vienen en el informe de entrega**: es El Bueno quien los mide, porque tiene el cambio delante y tú no. **Pásalos íntegros en los encargos de El Malo y de El Feo**, sin recalcularlos. Un rol sin límites escala su esfuerzo a su propia ambición, no a la del cambio.
+
+Si el informe no los trae, pídeselos reanudándolo. Solo si eso falla, mídelo tú:
 
 ```bash
 git add -N . && git diff --stat -- ':!*test*' ':!*spec*'
@@ -211,15 +213,13 @@ git add -N . && git diff --stat -- ':!*test*' ':!*spec*'
 
 Los globs `':!*test*' ':!*spec*'` son una aproximación: excluyen cualquier ruta que contenga esas subcadenas (también un `latest_prices.py` de producción) y no cubren otros layouts. Ajústalos al patrón real de tests del proyecto, que El Listo dejó en el Contexto del plan. El mismo patrón ajustado vale para la instantánea de la FASE 2.
 
-**En cada encargo, dile al rol qué tamaño tiene el cambio** y qué se espera de él. Un rol sin límites escala su esfuerzo a su propia ambición, no a la del cambio.
-
 ## La superficie de riesgo
 
-El tamaño solo no basta: **las líneas no predicen el esfuerzo del ataque**. Cien líneas de delegación trivial se agotan en un barrido; cuarenta que arman una ruta del sistema de ficheros pueden tener dentro toda la tarde. Junto al tamaño, clasifica el diff con una o varias de estas etiquetas y **pásalas en el encargo**:
+El tamaño solo no basta: **las líneas no predicen el esfuerzo del ataque**. Cien líneas de delegación trivial se agotan en un barrido; cuarenta que arman una ruta del sistema de ficheros pueden tener dentro toda la tarde. Por eso el informe trae, junto al tamaño, una o varias de estas etiquetas:
 
 `red` · `sistema de ficheros` · `persistencia` · `concurrencia` · `autenticación o control de acceso` · `entrada no confiable` · `solo delegación`
 
-La etiqueta puede **subir de fila** en las tablas de presupuesto de `malo.md` y `feo.md`, nunca bajarla: un cambio de 30 líneas etiquetado `autenticación o control de acceso` se ataca como uno de la fila de arriba, y uno de 150 etiquetado `solo delegación` sigue en la suya. Di también **dónde** está el riesgo —qué función, qué ruta—, no solo la etiqueta.
+La etiqueta puede **subir de fila** en las tablas de presupuesto de `malo.md` y `feo.md`, nunca bajarla: un cambio de 30 líneas etiquetado `autenticación o control de acceso` se ataca como uno de la fila de arriba, y uno de 150 etiquetado `solo delegación` sigue en la suya. El informe dice también **dónde** está el riesgo —qué función, qué ruta—: pásalo tal cual, no solo la etiqueta.
 
 ---
 
@@ -233,9 +233,19 @@ El Malo hereda el modelo de la sesión. Es lo que se quiere —si trabajas con u
 
 La patrulla se repite en **cada** lanzamiento, también en las verificaciones: si El Bueno corrigió algo, regenera la instantánea justo antes de relanzar, o la corrección legítima se le atribuiría a El Malo.
 
+## El bucle de corrección
+
+Cuando El Malo reporte fallos o El Feo devuelva un Informe de Desviaciones, **corrige reanudando al mismo Bueno** —el que lanzaste en la FASE 1, cuya referencia guardaste— con la herramienta de mensajes a subagentes. **Nunca lances un Bueno nuevo dentro del mismo paso.** Pásale los campos que `bueno.md` define para una corrección: el informe íntegro, de quién viene y qué ronda es.
+
+El porqué, para que nadie lo «optimice» más tarde: **reanudar conserva su contexto**. Acaba de escribir ese código y lo recuerda, así que corrige sin releerlo y sin reconstruir el paso — que es justo lo que le cuesta caro a un agente sin memoria. A cambio, reanudar reenvía todo su historial, así que su coste crece con cada ronda igual que el de una conversación larga. Dentro del paso sale a cuenta y el tope de lanzamientos de El Malo lo mantiene acotado; **fuera del paso no**: la referencia se descarta al cerrar la unidad de trabajo y la siguiente estrena Bueno.
+
+Si por lo que sea has perdido la referencia, lanza uno nuevo y **dile en el encargo que el trabajo previo no es suyo**, además de pasarle el informe: sin ese aviso leerá su propio código como ajeno y tenderá a rehacerlo.
+
+De cada corrección espera un informe con lo mismo que el de entrega, acotado al arreglo: qué tocó, **el tamaño de la corrección** (no el del paso), los números de los verificadores que la clase pida y regenerados tras corregir, y si tocó código de pasos anteriores. Esos son los campos que necesitan las verificaciones de El Malo y de El Feo; si no vienen, pídeselos reanudándolo otra vez, sin consumir lanzamientos.
+
 ## El diff de la corrección
 
-Las verificaciones —de El Malo y de El Feo— se acotan con un diff que contiene **solo la corrección**, no el paso entero. Producirlo es cosa tuya; `malo.md` y `feo.md` solo declaran que lo esperan como campo del encargo.
+Las verificaciones —de El Malo y de El Feo— se acotan con un diff que contiene **solo la corrección**, no el paso entero. Producirlo es cosa tuya; `malo.md` y `feo.md` solo declaran que lo esperan como campo del encargo. Es una operación de git que escribe a un fichero: no te obliga a leer el código, y por eso sigue siendo tuya.
 
 Se obtiene congelando el estado previo **antes** de que El Bueno toque nada, de modo que al terminar la corrección el diff contra esa foto sea exactamente ella.
 
@@ -258,7 +268,7 @@ Dos cuidados:
 - **Comprueba que el índice real sigue intacto** (`git status --short`) antes de continuar: si `GIT_INDEX_FILE` se te escapó de alguna orden, lo verás ahí.
 - La `<ruta-temporal>` va **fuera del repo**, o los ficheros aparecerían dentro del propio diff. En Windows, ruta absoluta nativa (`$env:TEMP\…`), no `/tmp`; en PowerShell la variable se pone con `$env:GIT_INDEX_FILE = "…"` y se quita con `Remove-Item Env:GIT_INDEX_FILE`.
 
-**Atajo para correcciones pequeñas.** Si sabes exactamente qué ficheros toca la corrección —lo normal, porque la acabas de hacer tú como El Bueno— y son unos pocos, no hace falta ceremonia: acota el diff a esos ficheros y sáltate el índice aparte.
+**Atajo para correcciones pequeñas.** Si sabes exactamente qué ficheros toca la corrección —El Bueno los lista en su informe de corrección— y son unos pocos, no hace falta ceremonia: acota el diff a esos ficheros y sáltate el índice aparte. La diferencia con antes es de dónde sale la lista: ya no de tu memoria de haberlo hecho, sino de su informe.
 
 ```bash
 git add -N . && git diff -- <fichero> <fichero> > <ruta-temporal>/gbu-fix.diff
@@ -269,9 +279,8 @@ El índice aparte es para cuando la corrección es amplia, incierta, o crea fich
 Si reporta fallos:
 
 - **congela el estado previo** (ver «El diff de la corrección», más abajo)
-- devuelve el control a El Bueno
-- corrige todos los fallos del informe en una sola pasada, dejando la suite de tests en verde
-- vuelve a lanzar el subagente `malo` en una invocación nueva, indicándole que es una **verificación**, con los campos adicionales que `malo.md` define para ese caso: comprueba que ningún fallo se reproduce y ataca solo lo que la corrección ha cambiado, sin repetir la batería completa. **Re-mide el tamaño sobre la corrección**: el presupuesto de la verificación es el del arreglo, no el del paso entero. El comando del Coste aquí no sirve —mide el paso completo—: el tamaño del arreglo lo sabes de primera mano, porque la corrección la acabas de hacer tú como El Bueno
+- **reanuda al mismo Bueno** (ver «El bucle de corrección») pasándole el informe íntegro, para que corrija **todos** los fallos en una sola pasada y deje la suite de tests en verde
+- vuelve a lanzar el subagente `malo` en una invocación nueva, indicándole que es una **verificación**, con los campos adicionales que `malo.md` define para ese caso: comprueba que ningún fallo se reproduce y ataca solo lo que la corrección ha cambiado, sin repetir la batería completa. **El tamaño que le pasas es el de la corrección**, no el del paso entero: el presupuesto de la verificación es el del arreglo. Ese número viene en el informe de corrección de El Bueno; el comando del presupuesto aquí no sirve, porque mide el paso completo
 
 ## Cuántos lanzamientos
 
@@ -309,9 +318,11 @@ Solo cuando El Malo ha respondido SOBREVIVIO_AL_MALO, ha agotado sus lanzamiento
 
 Cuidado con dar por buenos los de la FASE 1: **El Malo amplía la suite aunque no encuentre nada**, así que un `SOBREVIVIO_AL_MALO` limpio también los invalida. La regla no es «si hubo corrección», sino **verificador por verificador**:
 
-- **`test`**: re-ejecútalo siempre que El Malo haya devuelto el control. Sus tests son parte del paso y El Feo los va a ver en el diff; unos números que no los incluyan no cuadran con lo que tiene delante.
+- **`test`**: hace falta un número nuevo siempre que El Malo haya devuelto el control. Sus tests son parte del paso y El Feo los va a ver en el diff; unos números que no los incluyan no cuadran con lo que tiene delante.
 - **`lint` y chequeo de tipos**: solo si el proyecto los aplica también a los ficheros de test, o si hubo corrección en producción.
 - **`build`**: nunca por los tests de El Malo, que no entran en él. Solo si hubo corrección que toque código compilado.
+
+**Quién los saca**: si hubo corrección, los trae El Bueno en su informe de corrección, ya regenerados — no los pidas dos veces. Si El Malo sobrevivió sin corrección pero amplió la suite, ejecuta tú el comando de `test` del `## Contexto` del plan: es una orden suelta y su resultado es un número. Quédate con el número y no vuelques la salida en la conversación; si sale en rojo, no lo arregles tú — reanuda a El Bueno con el fallo.
 
 De los que no re-ejecutes, dile a El Feo **de cuándo son y por qué el paso no ha podido alterarlos** —«el `build` es anterior al ataque; El Malo solo añadió tests, que no entran en la build»—, igual que en los atajos. Sin esa frase, unos números anteriores al diff que tiene delante le parecen un descuido y los reclamará. Si el paso entró por un atajo que no ejecuta todos los verificadores, pásale los últimos números válidos diciéndole de cuándo son y por qué el paso no los ha vuelto a generar: un paso documental no puede haberlos alterado, y El Feo tiene que poder distinguir eso de un descuido.
 
@@ -332,9 +343,8 @@ Junto a la aprobación puede llegar una sección `## Observaciones`: desviacione
 Si devuelve un Informe de Desviaciones:
 
 - **congela el estado previo** (ver «El diff de la corrección», en la FASE 2)
-- devuelve el control a El Bueno
-- corrige únicamente esas desviaciones, dejando la suite de tests en verde
-- **regenera el fichero del diff y los números** de `test`, `lint`, `build` y chequeo de tipos tras la corrección: El Feo no distingue un diff viejo de uno nuevo, y auditar el diff previo a la corrección le hace re-reportar lo ya corregido y quemar lanzamientos. El diff se regenera siempre; los números, solo los que la clase del paso ejecuta —una corrección documental no los mueve—, y de los que no regeneres le dices otra vez de cuándo son y por qué
+- **reanuda al mismo Bueno** (ver «El bucle de corrección», en la FASE 2) pasándole el Informe de Desviaciones íntegro, para que corrija **únicamente** esas desviaciones y deje la suite de tests en verde. Si el informe traía además una sección `## Observaciones`, dile expresamente que esas no se corrigen
+- **regenera el fichero del diff** tras la corrección, y **usa los números que traiga su informe de corrección**: El Feo no distingue un diff viejo de uno nuevo, y auditar el diff previo a la corrección le hace re-reportar lo ya corregido y quemar lanzamientos. El diff se regenera siempre; los números, solo los que la clase del paso ejecuta —una corrección documental no los mueve—, y de los que no vengan regenerados le dices otra vez de cuándo son y por qué
 - vuelve a lanzar el subagente `feo` en una invocación nueva, indicándole que es una **verificación**, con los campos adicionales que `feo.md` define para ese caso: comprueba las correcciones sin repetir la auditoría completa
 
 Máximo:
@@ -384,7 +394,8 @@ En ese momento:
    - **si además pide push**: empuja a la rama actual. Nunca `--force`, nunca cambies de rama, nunca crees una rama nueva por tu cuenta. Si el push falla —no hay remoto, upstream sin configurar, rechazo por divergencia—, no lo reintentes a ciegas: el commit ya está hecho, así que dilo con el error literal y continúa.
    - **si no pide nada**: deja los cambios en staging, sin commit.
 5. Muestra al usuario las observaciones acumuladas, si las hay. Las que sean fallos degradados por agotar lanzamientos ya están en `TECHNICAL_DEBT.md` (se anotaron al degradar); las observaciones voluntarias de El Malo y las de El Feo —lo que reportaron junto a su veredicto sin bloquear— añádelas también allí si señalan algo que alguien debería decidir si se corrige, y no si son meros comentarios. Di también, si se dio el caso, que la unidad acumuló tres familias distintas de fallo (ver «Cuántos lanzamientos»): es una señal sobre cómo está partido el plan, no sobre este paso.
-6. Declara: PASO COMPLETADO, diciendo en la misma línea qué unidad se ha cerrado —si era un subpaso, cuál y de qué paso— y qué se hizo con los cambios (commit y push, commit, o en staging).
+6. **Descarta la referencia de El Bueno.** El paso está cerrado y su historial ya no sirve para nada: la unidad siguiente estrena uno, con el plan al día y el código ya commiteado o stageado. Arrastrarla sería pagar en cada turno el historial de un paso terminado.
+7. Declara: PASO COMPLETADO, diciendo en la misma línea qué unidad se ha cerrado —si era un subpaso, cuál y de qué paso— y qué se hizo con los cambios (commit y push, commit, o en staging).
 
 Después, para decidir si sigues:
 
