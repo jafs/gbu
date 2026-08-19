@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from localizador import codificar_ruta
-from session_report import main
+from session_report import _preparar_salida, main
 
 
 def _evento_asistente(texto, identificador, contexto=1000):
@@ -310,6 +310,42 @@ class TestModoComparar(unittest.TestCase):
 
         self.assertEqual(codigo, 1)
         self.assertIn("acepta el proyecto solo", salida)
+
+
+class TestSalida(unittest.TestCase):
+    """La salida lleva `⚠`, `↑` y `↓`, y eso no puede tumbar el proceso."""
+
+    def _flujo(self, codificacion):
+        return io.TextIOWrapper(io.BytesIO(), encoding=codificacion)
+
+    def test_una_tuberia_en_cp1252_no_revienta_con_las_flechas(self):
+        flujo = self._flujo("cp1252")
+
+        print("↓ ⚠ ↑", file=_preparar_salida(flujo))
+
+        self.assertTrue(flujo.writable())
+
+    def test_conserva_los_simbolos_cuando_puede(self):
+        flujo = self._flujo("cp1252")
+
+        print("↓", file=_preparar_salida(flujo))
+        flujo.flush()
+
+        self.assertIn("↓", flujo.buffer.getvalue().decode("utf-8"))
+
+    def test_un_flujo_que_no_se_reconfigura_se_devuelve_tal_cual(self):
+        flujo = io.StringIO()
+
+        self.assertIs(_preparar_salida(flujo), flujo)
+
+    def test_si_reconfigurar_falla_no_propaga(self):
+        class Terco(io.StringIO):
+            def reconfigure(self, **_):
+                raise OSError("no se puede")
+
+        flujo = Terco()
+
+        self.assertIs(_preparar_salida(flujo), flujo)
 
 
 if __name__ == "__main__":

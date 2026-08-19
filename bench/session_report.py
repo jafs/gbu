@@ -63,7 +63,7 @@ def main(argv=None, salida=None, ejecutar=None):
     arranque: una suite que invoca procesos externos deja de ser rápida y
     empieza a fallar por motivos que no son el código.
     """
-    salida = salida or sys.stdout
+    salida = _preparar_salida(sys.stdout) if salida is None else salida
     try:
         argumentos = _parsear(argv if argv is not None else sys.argv[1:])
         if argumentos.comparar is not None:
@@ -74,6 +74,31 @@ def main(argv=None, salida=None, ejecutar=None):
         print(f"Error: {error}", file=salida)
         return 1
     return 0
+
+
+def _preparar_salida(flujo):
+    """Deja el flujo capaz de escribir los símbolos del informe.
+
+    Los avisos y el cuadro de variación llevan `⚠`, `↑` y `↓`. Cuando la
+    salida es una tubería o un fichero —que es como la recoge cualquier
+    herramienta— Python no usa la consola sino la codificación local, y en
+    Windows eso es cp1252: el primer `↓` revienta con una traza justo
+    después de haber archivado bien el informe, así que el trabajo estaba
+    hecho y parecía que no. Se pasa a UTF-8, que es lo que espera quien
+    recoge la salida; si el flujo no se deja reconfigurar, al menos que
+    sustituya el carácter en vez de abortar.
+    """
+    reconfigurar = getattr(flujo, "reconfigure", None)
+    if reconfigurar is None:
+        return flujo
+    try:
+        reconfigurar(encoding="utf-8", errors="replace")
+    except (ValueError, OSError, LookupError):
+        try:
+            reconfigurar(errors="replace")
+        except (ValueError, OSError, LookupError):
+            pass
+    return flujo
 
 
 def _parsear(argv):
