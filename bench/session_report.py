@@ -316,6 +316,19 @@ def _resumir(informe, destino, salida):
             f"  {rol:10} {agregado.turnos:5} turnos  {coste(agregado, informe.pesos):14,.0f}",
             file=salida,
         )
+    flujo = informe.flujo
+    if flujo.pasos or flujo.lanzamientos:
+        rondas = flujo.rondas_de_malo_por_paso
+        detalle = (
+            f" — {rondas:.2f} rondas de El Malo por paso"
+            if rondas is not None
+            else " (sin marcas de paso: las rondas no se pueden atribuir)"
+        )
+        print(
+            f"{flujo.pasos} pasos completados, "
+            f"{flujo.lanzamientos.get('malo', 0)} lanzamientos de El Malo{detalle}.",
+            file=salida,
+        )
     print(file=salida)
     print(f"{len(informe.hallazgos)} hallazgos. Los más caros:", file=salida)
     for hallazgo in informe.hallazgos[:_HALLAZGOS_EN_PANTALLA]:

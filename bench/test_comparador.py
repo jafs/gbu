@@ -15,21 +15,34 @@ def _informe(
     por_rol=None,
     turn_tokens=None,
     hallazgos=(),
+    flujo=None,
 ):
+    metricas = {
+        "sesiones": sesiones,
+        "turnos": turnos,
+        "coste_total": coste,
+        "pensamiento": pensamiento,
+        "por_rol": por_rol or {"sheriff": {"coste": coste, "turnos": turnos}},
+        "por_modelo": {"claude-opus-5": {"coste": coste, "turnos": turnos}},
+        "turn_tokens": turn_tokens or {"texto": 500},
+    }
+    if flujo is not None:
+        metricas["flujo"] = flujo
     return {
         "esquema": esquema,
         "proyecto": "C:/proyectos/x",
         "versiones": versiones if versiones is not None else {"0.1.0": sesiones},
-        "metricas": {
-            "sesiones": sesiones,
-            "turnos": turnos,
-            "coste_total": coste,
-            "pensamiento": pensamiento,
-            "por_rol": por_rol or {"sheriff": {"coste": coste, "turnos": turnos}},
-            "por_modelo": {"claude-opus-5": {"coste": coste, "turnos": turnos}},
-            "turn_tokens": turn_tokens or {"texto": 500},
-        },
+        "metricas": metricas,
         "hallazgos": list(hallazgos),
+    }
+
+
+def _flujo(pasos=6, malo=10, rondas=None, reloj=None):
+    return {
+        "pasos": pasos,
+        "lanzamientos": {"malo": malo},
+        "reloj_segundos": reloj or {"sheriff": 8160, "malo": 1260},
+        "rondas_de_malo_por_paso": rondas if rondas is not None else (malo / pasos if pasos else None),
     }
 
 
@@ -107,6 +120,67 @@ class TestMetricas(unittest.TestCase):
         comparacion = comparar(_informe(), _informe(versiones={"0.2.0": 6}))
 
         self.assertIsNone(_metrica(comparacion, "coste_total").mejora)
+
+
+class TestFlujo(unittest.TestCase):
+    def test_compara_pasos_rondas_y_coste_por_paso(self):
+        comparacion = comparar(
+            _informe(coste=1_200_000, flujo=_flujo(pasos=6, malo=10)),
+            _informe(
+                coste=700_000,
+                versiones={"0.2.0": 6},
+                flujo=_flujo(pasos=4, malo=5),
+            ),
+        )
+
+        self.assertEqual(_metrica(comparacion, "pasos").antes, 6)
+        self.assertEqual(_metrica(comparacion, "coste_por_paso").antes, 200_000)
+        self.assertEqual(_metrica(comparacion, "coste_por_paso").despues, 175_000)
+        rondas = _metrica(comparacion, "rondas_de_malo_por_paso")
+        self.assertAlmostEqual(rondas.antes, 10 / 6, places=2)
+        self.assertAlmostEqual(rondas.despues, 1.25)
+
+    def test_las_rondas_son_la_senal_roja_y_se_juzgan(self):
+        comparacion = comparar(
+            _informe(flujo=_flujo(pasos=6, malo=10)),
+            _informe(versiones={"0.2.0": 6}, flujo=_flujo(pasos=6, malo=15)),
+        )
+
+        self.assertFalse(_metrica(comparacion, "rondas_de_malo_por_paso").mejora)
+
+    def test_el_reloj_se_compara_por_rol_sin_juicio(self):
+        comparacion = comparar(
+            _informe(flujo=_flujo(reloj={"sheriff": 8160, "malo": 1260})),
+            _informe(versiones={"0.2.0": 6}, flujo=_flujo(reloj={"sheriff": 2580})),
+        )
+
+        self.assertEqual(_metrica(comparacion, "reloj_sheriff").despues, 2580)
+        self.assertEqual(_metrica(comparacion, "reloj_malo").despues, 0)
+        self.assertIsNone(_metrica(comparacion, "reloj_sheriff").mejora)
+
+    def test_si_falta_en_un_lado_no_se_compara_contra_ceros(self):
+        comparacion = comparar(
+            _informe(),
+            _informe(versiones={"0.2.0": 6}, flujo=_flujo()),
+        )
+
+        self.assertEqual(
+            [v for v in comparacion.metricas if v.familia in ("flujo", "reloj")], []
+        )
+        self.assertTrue(any("métricas de flujo" in a for a in comparacion.avisos))
+
+    def test_las_rondas_se_imprimen_con_decimales(self):
+        # Redondear 1,67 y 2,4 a enteros las haría indistinguibles, y es
+        # justo la cifra que decide reversiones.
+        texto = a_markdown(
+            comparar(
+                _informe(flujo=_flujo(pasos=6, malo=10)),
+                _informe(versiones={"0.2.0": 6}, flujo=_flujo(pasos=4, malo=5)),
+            )
+        )
+
+        self.assertIn("1.67", texto)
+        self.assertIn("1.25", texto)
 
 
 class TestHallazgos(unittest.TestCase):

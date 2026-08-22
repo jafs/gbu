@@ -52,6 +52,10 @@ Un fichero de mil tokens leído en el turno 5 de una conversación de cien turno
 
 El contexto del primer turno menos lo que el transcript había escrito hasta entonces. Aproxima lo que no aparece en la traza y sin embargo se paga en cada turno: el prompt de sistema, las definiciones de las herramientas y los ficheros de contexto del proyecto. Es una resta entre una cifra real y una estimada, así que es orientativa.
 
+### Flujo
+
+Pasos cerrados, lanzamientos de subagente y reloj de pared por rol. Los pasos se cuentan por la marca `PASO COMPLETADO` que el Sheriff declara al cerrar cada unidad de trabajo — si una sesión se corta a mitad de paso, ese paso no cuenta. De ahí sale **la señal roja del patrón: las rondas de El Malo por paso** (lanzamientos de `malo` ÷ pasos). Un cambio que ahorra tokens pero sube las rondas ha salido caro, y el comparador la cruza entre versiones junto al `coste_por_paso`. El reloj del sheriff incluye la espera humana —las paradas entre pasos viven en su transcript—, así que el informe lo presenta como «resto», no como trabajo.
+
 ## Lo que el informe no puede decir
 
 - **Los tokens de los hallazgos no se suman entre categorías.** Cada detector mira desde un ángulo distinto y varios señalan a la vez el mismo bloque. El total por categoría es legítimo; un total general sería mentira.

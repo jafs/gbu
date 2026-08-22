@@ -27,8 +27,9 @@ Lo que respondes:
 
 1. **Los avisos primero.** Si la ventana mezcla versiones del patrón, dilo antes que nada: cambia lo que significa todo lo demás. Igual con las sesiones cuya versión está supuesta y no leída.
 2. La cabecera: cuántas sesiones entraron, cuántas se descartaron, el coste total y el reparto por rol.
-3. Los hallazgos más caros, con su identificador, para poder seguirlos en el informe siguiente.
-4. Dónde quedó archivado.
+3. **El flujo**: pasos completados y **rondas de El Malo por paso**, que es la señal roja del patrón — por encima de 2, dilo como problema aunque el coste haya bajado. Si no hay marcas de paso, di que las rondas no se pueden atribuir, no que son cero.
+4. Los hallazgos más caros, con su identificador, para poder seguirlos en el informe siguiente.
+5. Dónde quedó archivado.
 
 Lo que **no** haces: volcar el informe entero en la conversación. Está archivado precisamente para no pagarlo dos veces. Si el proyecto no tiene sesiones, o ninguna entra en la ventana, la herramienta lo dice con un mensaje claro: repítelo tal cual en vez de investigar por tu cuenta.
 
@@ -48,7 +49,8 @@ Sin versiones compara los dos informes archivados más recientes. Con ellas comp
 
 Aquí sí emites un **veredicto razonado**:
 
-- **Si ha mejorado o empeorado, y por qué.** Mira las cifras por sesión y por turno antes que los totales: dos ventanas casi nunca cubren el mismo trabajo, y un total que baja porque se trabajó menos no es una mejora del patrón.
+- **Si ha mejorado o empeorado, y por qué.** Mira las cifras por sesión, por turno y por paso antes que los totales: dos ventanas casi nunca cubren el mismo trabajo, y un total que baja porque se trabajó menos no es una mejora del patrón. `coste_por_paso` es la cifra que mejor resiste esa trampa.
+- **Las rondas de El Malo por paso mandan sobre el coste.** Es la señal roja: si suben aunque el coste baje, el cambio ha salido caro —una ronda extra cuesta más que casi cualquier ahorro de contexto— y el veredicto lo dice así. El reloj por rol se lee con su letra pequeña: el «resto» del sheriff incluye la espera humana.
 - **Si algún rol cambió de modelo.** Si lo hizo, la variación de coste de ese rol no dice nada sobre los prompts, y hay que decirlo en vez de atribuírsela al patrón.
 - **Qué hallazgos se cerraron, cuáles resistieron y cuáles son nuevos.** Un hallazgo nuevo caro justo después de un cambio de prompt es la señal más útil del informe.
 - **Qué atacar en la siguiente versión**, en orden de lo que cuesta.

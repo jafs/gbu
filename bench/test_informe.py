@@ -214,6 +214,60 @@ class TestJson(unittest.TestCase):
         self.assertEqual(datos["metricas"]["coste_total"], 0)
 
 
+class TestFlujoEnInforme(unittest.TestCase):
+    def _informe_con_pasos(self):
+        clasificada = _clasificada()
+        participantes = [
+            Participante(
+                "sheriff",
+                conversacion_desde_eventos(
+                    [
+                        _turno("PASO COMPLETADO — 1.1", identificador="m1"),
+                        _turno("PASO COMPLETADO — 1.2", identificador="m2"),
+                    ]
+                ),
+            ),
+            Participante("malo", conversacion_desde_eventos([_turno(identificador="b1")])),
+            Participante("malo", conversacion_desde_eventos([_turno(identificador="b2")])),
+            Participante("malo", conversacion_desde_eventos([_turno(identificador="b3")])),
+        ]
+        analisis, _ = analizar_sesion(clasificada, participantes)
+        return componer(
+            proyecto="x",
+            seleccion=_Seleccion(incluidas=(clasificada,)),
+            analisis=[analisis],
+            hallazgos=[],
+        )
+
+    def test_el_json_lleva_el_flujo_agregado_y_por_sesion(self):
+        datos = json.loads(a_json(self._informe_con_pasos()))
+
+        flujo = datos["metricas"]["flujo"]
+        self.assertEqual(flujo["pasos"], 2)
+        self.assertEqual(flujo["lanzamientos"], {"malo": 3})
+        self.assertEqual(flujo["rondas_de_malo_por_paso"], 1.5)
+        self.assertIn("reloj_segundos", flujo)
+        self.assertEqual(datos["sesiones"][0]["flujo"]["pasos"], 2)
+
+    def test_el_markdown_lleva_la_seccion_de_flujo(self):
+        texto = a_markdown(self._informe_con_pasos())
+
+        self.assertIn("## Flujo", texto)
+        self.assertIn("**Rondas de El Malo por paso**: **1.50**", texto)
+
+    def test_una_sesion_construida_sin_flujo_no_rompe(self):
+        # Los informes archivados antes de esta métrica se releen sin ella;
+        # la sesión sin flujo serializa un flujo vacío, no una traza.
+        informe = componer(
+            proyecto="x", seleccion=_Seleccion(), analisis=[], hallazgos=[]
+        )
+
+        datos = json.loads(a_json(informe))
+
+        self.assertEqual(datos["metricas"]["flujo"]["pasos"], 0)
+        self.assertNotIn("## Flujo", a_markdown(informe))
+
+
 class TestMarkdown(unittest.TestCase):
     def test_una_seccion_por_bloque_de_metricas(self):
         texto = a_markdown(_informe_de_prueba())

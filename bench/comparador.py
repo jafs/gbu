@@ -24,10 +24,16 @@ _MENOS_ES_MEJOR = (
     "coste_total",
     "coste_por_sesion",
     "coste_por_turno",
+    "coste_por_paso",
+    "rondas_de_malo_por_paso",
     "turn_tokens",
     "pensamiento",
     "hallazgos",
 )
+
+# Métricas fraccionarias: redondearlas a enteros en el cuadro las
+# destrozaría (1,67 rondas y 2,4 rondas saldrían las dos como «2»).
+_CON_DECIMALES = ("rondas_de_malo_por_paso",)
 
 # A partir de qué proporción entre ventanas la comparación deja de ser
 # directa. Con el doble de sesiones en un lado, los totales ya no se
@@ -128,6 +134,7 @@ def _metricas(referencia, nuevo):
         ),
         Variacion("pensamiento", _numero(antes, "pensamiento"), _numero(despues, "pensamiento")),
     ]
+    variaciones += _flujo(antes, despues)
     variaciones += _por_clave(antes, despues, "por_rol", "coste", "rol")
     variaciones += _por_clave(antes, despues, "por_modelo", "coste", "modelo")
     variaciones += _turn_tokens(antes, despues)
@@ -173,6 +180,48 @@ def _turn_tokens(antes, despues):
         )
         for clase in sorted(set(izquierda) | set(derecha))
     ]
+
+
+def _flujo(antes, despues):
+    """Compara las métricas de flujo, si los dos informes las traen.
+
+    Cuando falta en uno de los lados —un informe archivado con una versión
+    anterior de la herramienta— no se compara contra ceros inventados: se
+    omite la fila y `_avisos` lo dice.
+    """
+    izquierda = antes.get("flujo")
+    derecha = despues.get("flujo")
+    if not izquierda or not derecha:
+        return []
+    variaciones = [
+        Variacion("pasos", _numero(izquierda, "pasos"), _numero(derecha, "pasos"), familia="flujo"),
+        Variacion("coste_por_paso", _coste_por_paso(antes), _coste_por_paso(despues), familia="flujo"),
+        Variacion(
+            "rondas_de_malo_por_paso",
+            _numero(izquierda, "rondas_de_malo_por_paso"),
+            _numero(derecha, "rondas_de_malo_por_paso"),
+            familia="flujo",
+        ),
+    ]
+    reloj_antes = izquierda.get("reloj_segundos") or {}
+    reloj_despues = derecha.get("reloj_segundos") or {}
+    variaciones += [
+        Variacion(
+            nombre=f"reloj_{rol}",
+            antes=float(reloj_antes.get(rol) or 0),
+            despues=float(reloj_despues.get(rol) or 0),
+            familia="reloj",
+        )
+        for rol in sorted(set(reloj_antes) | set(reloj_despues))
+    ]
+    return variaciones
+
+
+def _coste_por_paso(metricas):
+    pasos = _numero(metricas.get("flujo") or {}, "pasos")
+    if not pasos:
+        return 0.0
+    return _numero(metricas, "coste_total") / pasos
 
 
 def _resueltos(referencia, nuevo):
@@ -241,6 +290,15 @@ def _avisos(referencia, nuevo):
             "la variación no se puede atribuir a un solo cambio."
         )
 
+    flujo_antes = bool((referencia.get("metricas") or {}).get("flujo"))
+    flujo_despues = bool((nuevo.get("metricas") or {}).get("flujo"))
+    if flujo_antes != flujo_despues:
+        avisos.append(
+            "Solo uno de los dos informes trae métricas de flujo (el otro se "
+            "archivó con una versión anterior de la herramienta): pasos, rondas "
+            "y reloj no se comparan."
+        )
+
     sesiones_antes = _numero(referencia.get("metricas") or {}, "sesiones")
     sesiones_despues = _numero(nuevo.get("metricas") or {}, "sesiones")
     if not sesiones_antes or not sesiones_despues:
@@ -293,8 +351,9 @@ def a_markdown(comparacion):
     lineas += ["## Métricas", "", "| Métrica | Antes | Después | Variación | % |", "| --- | ---: | ---: | ---: | ---: |"]
     for variacion in comparacion.metricas:
         lineas.append(
-            f"| {_marca(variacion)}{variacion.nombre} | {variacion.antes:,.0f} "
-            f"| {variacion.despues:,.0f} | {variacion.absoluta:+,.0f} | {_porcentaje(variacion)} |"
+            f"| {_marca(variacion)}{variacion.nombre} | {_cifra(variacion, variacion.antes)} "
+            f"| {_cifra(variacion, variacion.despues)} "
+            f"| {_cifra(variacion, variacion.absoluta, signo=True)} | {_porcentaje(variacion)} |"
         )
 
     lineas += [
@@ -327,6 +386,11 @@ def _lista(titulo, hallazgos, describir):
         )
     lineas.append("")
     return lineas
+
+
+def _cifra(variacion, valor, signo=False):
+    decimales = 2 if variacion.nombre in _CON_DECIMALES else 0
+    return f"{valor:{'+' if signo else ''},.{decimales}f}"
 
 
 def _marca(variacion):

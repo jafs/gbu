@@ -33,11 +33,13 @@ from metricas_contexto import (
 )
 from metricas_coste import (
     PESOS_POR_DEFECTO,
+    SHERIFF,
     Agregado,
     agregar_sesion,
     coste,
     sumar,
 )
+from metricas_flujo import medir_flujo, sumar_flujos
 
 VERSION_ESQUEMA = 1
 
@@ -61,6 +63,7 @@ class SesionAnalizada:
     inicio: object = None
     fin: object = None
     costes: object = None
+    flujo: object = None
     curvas: dict = field(default_factory=dict)
     preludes: dict = field(default_factory=dict)
     turn_tokens: dict = field(default_factory=dict)
@@ -111,6 +114,11 @@ class Informe:
         return sumar(self.coste_por_rol.values())
 
     @property
+    def flujo(self):
+        """Flujo agregado de la ventana: pasos, lanzamientos y reloj."""
+        return sumar_flujos(s.flujo for s in self.sesiones if s.flujo)
+
+    @property
     def turn_tokens(self):
         acumulado = {}
         for sesion in self.sesiones:
@@ -155,6 +163,7 @@ def analizar_sesion(clasificada, participantes, umbrales=None):
         inicio=getattr(sesion, "inicio", None),
         fin=getattr(sesion, "fin", None),
         costes=agregar_sesion(participantes, identificador),
+        flujo=medir_flujo(participantes),
         curvas=curvas,
         preludes=preludes,
         turn_tokens=turn_tokens,
@@ -211,6 +220,7 @@ def _estructura(informe):
                 for modelo, agregado in informe.coste_por_modelo.items()
             },
             "turn_tokens": informe.turn_tokens,
+            "flujo": _flujo(informe.flujo),
         },
         "sesiones": [_sesion(s, informe.pesos) for s in informe.sesiones],
         "descartadas": [dict(d) for d in informe.descartadas],
@@ -239,6 +249,7 @@ def _sesion(sesion, pesos):
         "inicio": _instante(sesion.inicio),
         "fin": _instante(sesion.fin),
         "coste": round(coste(sesion.costes.total, pesos), 2) if sesion.costes else 0,
+        "flujo": _flujo(sesion.flujo),
         "por_rol": {
             rol.rol: _agregado(rol.total, pesos)
             for rol in (sesion.costes.roles if sesion.costes else ())
@@ -276,6 +287,21 @@ def _sesion(sesion, pesos):
     }
 
 
+def _flujo(flujo):
+    """Serializa un flujo; None —una sesión construida sin él— da vacío."""
+    if flujo is None:
+        return {}
+    rondas = flujo.rondas_de_malo_por_paso
+    return {
+        "pasos": flujo.pasos,
+        "lanzamientos": dict(flujo.lanzamientos),
+        "reloj_segundos": {
+            rol: round(segundos) for rol, segundos in flujo.reloj.items()
+        },
+        "rondas_de_malo_por_paso": round(rondas, 2) if rondas is not None else None,
+    }
+
+
 def _hallazgo(hallazgo):
     return {
         "identificador": hallazgo.identificador,
@@ -307,6 +333,7 @@ def a_markdown(informe):
     lineas += _cabecera(informe)
     lineas += _seccion_avisos(informe)
     lineas += _seccion_coste(informe)
+    lineas += _seccion_flujo(informe)
     lineas += _seccion_contexto(informe)
     lineas += _seccion_hallazgos(informe)
     lineas += _seccion_descartadas(informe)
@@ -360,6 +387,57 @@ def _seccion_coste(informe):
         f"Tokens de pensamiento declarados: **{informe.total.pensamiento:,}**.",
         "",
     ]
+    return lineas
+
+
+def _seccion_flujo(informe):
+    flujo = informe.flujo
+    if not flujo.pasos and not flujo.lanzamientos and not flujo.reloj:
+        return []
+    rondas = flujo.rondas_de_malo_por_paso
+    lanzamientos = (
+        ", ".join(f"{rol} {cuenta}" for rol, cuenta in sorted(flujo.lanzamientos.items()))
+        or "ninguno"
+    )
+    lineas = [
+        "## Flujo",
+        "",
+        f"- **Pasos completados**: {flujo.pasos} (contados por la marca `PASO COMPLETADO` del Sheriff)",
+        f"- **Lanzamientos de subagente**: {lanzamientos}",
+        f"- **Rondas de El Malo por paso**: "
+        + (f"**{rondas:.2f}**" if rondas is not None else "sin pasos que atribuir"),
+        "",
+    ]
+    if flujo.reloj:
+        # El total es el transcript del sheriff, que abarca la sesión
+        # entera; los subagentes corren dentro de ese intervalo, así que
+        # sumar todos los roles contaría el mismo minuto dos veces.
+        subagentes = {rol: s for rol, s in flujo.reloj.items() if rol != SHERIFF}
+        total = flujo.reloj.get(SHERIFF) or sum(subagentes.values())
+
+        def porcentaje(segundos):
+            return f"{segundos / total * 100:.1f}%" if total else "—"
+
+        lineas += [
+            f"Reloj de pared total: **{total / 60:,.1f} min**.",
+            "",
+            "| Rol | Reloj | % del total |",
+            "| --- | ---: | ---: |",
+        ]
+        for rol, segundos in sorted(subagentes.items(), key=lambda par: -par[1]):
+            lineas.append(f"| {rol} | {segundos / 60:,.1f} min | {porcentaje(segundos)} |")
+        if SHERIFF in flujo.reloj:
+            resto = total - sum(subagentes.values())
+            lineas.append(
+                f"| resto (sheriff y esperas) | {resto / 60:,.1f} min | {porcentaje(resto)} |"
+            )
+        lineas += [
+            "",
+            "El «resto» incluye la espera humana —las paradas entre pasos viven "
+            "en el transcript del sheriff—, así que no es tiempo de trabajo del "
+            "patrón.",
+            "",
+        ]
     return lineas
 
 
