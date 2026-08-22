@@ -136,6 +136,78 @@ en disco —las correcciones acordadas por `SendMessage` dentro de un paso, sobr
 la herramienta permite provocarlo desde el propio flujo. El −20 % está medido con n=2
 subpasos y contra trabajo de otra naturaleza: orienta, no cierra.
 
+## El Sheriff pierde marcas de protocolo en sesiones largas
+
+**Observado**: 2026-08-22, ventana v0.4.0 sobre `kdserver`.
+
+Tres derivas en la misma ventana, concentradas en la sesión más larga (191 turnos de
+Sheriff, pico de 346.446 tokens):
+
+- Declaró el token literal `PASO COMPLETADO` en **6 de 10 cierres**; los otros cuatro los
+  cerró con «Cierro el Paso X» en texto libre. Consecuencia directa: `pasos_completados`,
+  `rondas_de_malo_por_paso` y `coste_por_paso` del informe salen rotos —1,83 rondas
+  medidas frente a 1,10 reales— y los cierres hubo que contarlos con los commits.
+- No anunció la adopción de El Listo al entrar en la FASE 0, aunque `gbu.md` manda
+  anunciar cada fase con el rol que entra: desde fuera, la planificación es
+  indistinguible de un análisis por libre del Sheriff.
+- Lanzó un subagente `Explore` (95k, sesión `437b70b7`), un rol que el patrón no
+  contempla.
+
+**Por qué importa**: la señal roja del plan de adelgazamiento se lee con el token. Sin
+él, la métrica que decide si un paso se revierte no es fiable.
+
+**Vías**: endurecer el detector de `session_report.py` para contar también los cierres en
+texto libre —es herramienta, no patrón: se puede hacer con la ventana abierta, como el
+arreglo de `_preparar_salida`—; y reforzar en `gbu.md` que el token y los anuncios de
+fase son traza de medición, no prosa opcional.
+
+**Qué lo bloquea**: nada por el lado del detector. El lado del prompt espera a la
+siguiente versión, con la ventana v0.4.0 cerrada.
+
+## Planificar en sesión envenena el contexto del Sheriff
+
+**Medido**: 2026-08-22, ventana v0.4.0 sobre `kdserver`.
+
+El Listo es el único rol que el Sheriff adopta él mismo, y planificar exige leer código.
+Todo lo que lee queda en el contexto del Sheriff para el resto de la ejecución: en esta
+ventana, `listo.md` (788k turn-tokens), el plan en borrador (790k), la paleta CSS (713k),
+el catálogo (695k) y código de componentes (~780k) se rearrastraron durante los ~180
+turnos de ejecución posteriores. Es la causa principal de que el Sheriff subiera al
+**51,5 % del coste de la ventana** con un pico de **346.446** — en un patrón cuyo
+principio es «Tú no ves el código». En la 0.3.0 no se vio porque su ventana retomaba un
+plan ya escrito.
+
+**Vía**: cortar el contexto al cerrar la FASE 0. El plan y el modo de ejecución ya viven
+en disco, que es exactamente la memoria que sobrevive a un contexto que se va
+(`DESIGN.md`, «El plan y la memoria compartida»). Es la misma palanca que «El `clear`
+entre subpasos vale un 20 %», aplicada a la junta más rentable: la que separa planificar
+de ejecutar. Mientras el `clear` no se pueda provocar desde el flujo, vale la versión
+barata: que el Sheriff pare tras la FASE 0 y sugiera el `/clear` al usuario.
+
+**Qué lo bloquea**: lo mismo que el `clear` automático, y el plan de adelgazamiento
+abierto — es una palanca nueva y no se mide junta a otra.
+
+## El Sheriff no acota su propia entrada
+
+**Medido**: 2026-08-22, ventana v0.4.0 sobre `kdserver`.
+
+Las reglas de acotado de la v0.4.0 son de El Bueno; el Sheriff no tiene las suyas y lo
+pagó dos veces:
+
+- Al comprobar el contrato del plan en la FASE 0 leyó **entero** el plan terminado de la
+  tanda anterior: 7.866 tokens rearrastrados 189 turnos, **1,49M turn-tokens** solo para
+  archivarlo.
+- En la FASE 3 un resultado de **13.400 tokens** —con pinta de suite completa— entró
+  entero en su turno 455: 704k. `gbu.md` ya le dice «quédate con el número y no vuelques
+  la salida en la conversación», pero no hay regla de acotado escrita como comando.
+
+**Vías**: comprobar el contrato del plan leyendo solo las cabeceras (un `Grep` de `## `
+basta para las tres secciones), y acotar los verificadores que él mismo ejecute igual que
+El Bueno (`| tail` con la excepción en rojo).
+
+**Qué lo bloquea**: es cambio de prompt — siguiente versión, y compite por ventana de
+medición con el Paso 3 del plan de adelgazamiento.
+
 ## Descartado: paralelizar El Malo y El Feo
 
 **Evaluado y rechazado**: 2026-08-21, con el reloj medido.
