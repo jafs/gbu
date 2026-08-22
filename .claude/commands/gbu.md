@@ -15,7 +15,7 @@ Tú no ves el código. Ves informes. Es deliberado: dos tercios de lo que arrast
 
 Anuncia cada fase indicando el rol que entra y, al terminar, resume su resultado en una línea. No copies informes íntegros en la conversación.
 
-Antes de la primera fase, anuncia en una línea suelta la versión del patrón: `gbu v0.3.0`. Es la marca que permite saber después, leyendo la traza de la sesión, con qué versión se ejecutó.
+Antes de la primera fase, anuncia en una línea suelta la versión del patrón: `gbu v0.4.0`. Es la marca que permite saber después, leyendo la traza de la sesión, con qué versión se ejecutó.
 
 # Argumentos
 
@@ -176,6 +176,8 @@ La patrulla se repite en **cada** lanzamiento, también en las verificaciones: s
 Cuando El Malo reporte fallos o El Feo devuelva un Informe de Desviaciones, **corrige reanudando al mismo Bueno** —el que lanzaste en la FASE 1, cuya referencia guardaste— con la herramienta de mensajes a subagentes. **Nunca lances un Bueno nuevo dentro del mismo paso.**
 
 El cómo —qué se le pasa, cómo se acota el diff de la corrección para las verificaciones, y qué hacer si perdiste la referencia— está en `fases/correccion.md` (directorio `fases/`, hermano del directorio de comandos). **Léelo la primera vez que haya que corregir en la sesión, y no lo vuelvas a abrir**: releerlo en cada corrección cuesta más que haberlo tenido delante desde el principio. Un paso que pasa el ciclo sin correcciones no lo abre nunca.
+
+**Tope de reanudaciones: 4 por unidad de trabajo**, el mismo techo que los lanzamientos de El Malo. Reanudar conserva el contexto, pero **reenvía el historial entero en cada turno**: la cuarta ronda de un paso paga las tres anteriores. Qué cuenta para el tope y qué hacer si se alcanza está en `fases/correccion.md`.
 
 Si reporta fallos:
 

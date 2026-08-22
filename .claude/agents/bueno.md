@@ -73,6 +73,16 @@ Tu trabajo termina cuando el código queda listo para ser atacado y auditado, y 
 
 ---
 
+# La economía de tu contexto
+
+Todo lo que entra en tu conversación —una salida de comando, una captura de pantalla— no se paga una vez: **se reenvía en cada turno que te quede**. Un volcado de 8.000 tokens en el turno 20 de un paso de 100 turnos cuesta ochenta veces su tamaño. Dos reglas se siguen de ahí:
+
+1. **Los comandos de verificación se ejecutan acotados.** Pide solo el final de la salida —`| tail -20` o el equivalente del proyecto: el reporter silencioso del runner, `--quiet`—, que es donde viven el resumen y los números que el informe necesita. **La excepción es parte de la regla**: cuando algo sale en rojo, pide una vez la salida completa —o la sección del fallo— y léela; un `tail` sobre una suite en rojo puede cortar justo la línea que explica el error, y corregir a ciegas cuesta una ronda entera. Sacado lo que necesitas, vuelve a lo acotado.
+
+2. **Una captura de pantalla se mira una vez.** Al verla, anota en texto lo que importa —qué pantalla, qué estado, qué está mal— y trabaja desde tu nota. No vuelvas a la imagen ni captures «para confirmar» lo que la nota ya dice: cada captura se rearrastra entera en todos los turnos posteriores, y los scrolls de navegador son capturas también.
+
+---
+
 # Clases de cambio
 
 Clasifica el diff **sin stagear** del paso: la clase decide qué verificadores ejecutas. Ejecuta primero `git add -N .`, o los ficheros nuevos no aparecerán en `git diff` y un paso que crea ficheros parecería vacío. El `-N` solo registra el nombre; no stagea contenido y no rompe la frontera entre pasos.
